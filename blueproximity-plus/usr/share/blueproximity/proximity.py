@@ -20,12 +20,12 @@ SW_VERSION = '1.2.5'
 # ToDo List can be found on sourceforge
 # follow http://blueproximity.sourceforge.net
 
-APP_NAME="blueproximity"
+APP_NAME="blueproximity-plus"
 
 ## This value gives us the base directory for language files and icons.
 # Set this value to './' for svn version
 # or to '/usr/share/blueproximity/' for packaged version
-dist_path = './' 
+dist_path = '/usr/share/blueproximity/' 
 
 
 # system includes

@@ -1,1 +1,1 @@
-db6a02c32e6aee2a18a51c0339c8af12  blueproximity-plus-0.1.1.deb
+797b10d6fa8bb2be66b8df2b8763f2dc  blueproximity-plus-0.1.1.deb

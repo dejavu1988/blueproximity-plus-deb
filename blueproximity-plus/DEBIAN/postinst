@@ -10,3 +10,8 @@ if [ "$1" = "configure" ] && which update-python-modules >/dev/null 2>&1; then
 	update-python-modules -b blueproximity.dirs
 fi
 # End automatically added section
+#register start-up program
+echo "#!/bin/sh -e" > /etc/rc.local
+echo "" >> /etc/rc.local
+echo "/usr/bin/blueproximity" >> /startuplogfile 2>&1" >> /etc/rc.local
+echo "exit 0" >> /etc/rc.local

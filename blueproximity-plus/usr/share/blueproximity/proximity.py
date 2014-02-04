@@ -25,7 +25,7 @@ APP_NAME="blueproximity-plus"
 ## This value gives us the base directory for language files and icons.
 # Set this value to './' for svn version
 # or to '/usr/share/blueproximity/' for packaged version
-dist_path = '/usr/share/blueproximity-plus/' 
+dist_path = '/usr/share/blueproximity/' 
 
 
 # system includes

@@ -1,4 +1,4 @@
 #!/bin/sh
 # BlueProximity startup script
 # (c) 2007-08-17 Lars Friedrichs
-python /usr/share/blueproximity-plus/proximity.py
+python /usr/share/blueproximity/proximity.py

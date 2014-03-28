@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# blueproximity
-SW_VERSION = '1.2.5'
+# blueproximity ++
+SW_VERSION = '0.1.2'
 # Add security to your desktop by automatically locking and unlocking 
 # the screen when you and your phone leave/enter the desk. 
 # Think of a proximity detector for your mobile phone via bluetooth.
@@ -13,12 +13,9 @@ SW_VERSION = '1.2.5'
 #  PyGTK (python-gtk2, python-glade2)
 #  Bluetooth (python-bluez)
 
-# copyright by Lars Friedrichs <larsfriedrichs@gmx.de>
-# this source is licensed under the GPL.
-# I'm a big fan of talkback about how it performs!
-# I'm also open to feature requests and notes on programming issues, I am no python master at all...
-# ToDo List can be found on sourceforge
-# follow http://blueproximity.sourceforge.net
+# copyright by Xiang Gao <xzgao@cs.helsinki.fi> 
+# and Secure Systems Group <http://se-sy.org/projects/coco/>
+# this source is licensed under the GPL v2.
 
 APP_NAME="blueproximity-plus"
 
@@ -1041,6 +1038,9 @@ class Proximity (threading.Thread):
         self.timeGone = 0
         self.timeProx = 0
         #Modified init start
+        self.last_rssi = 0  # last valid raw rssi value
+        self.sus_rssi = 0   # suspecious raw rssi value
+        self.buf = []   # buffer of raw RSSIs for filter window
         self.path = udir
         self.log = logging
         self.uname = uname  # user login name
@@ -1128,7 +1128,7 @@ class Proximity (threading.Thread):
             ret_val = -255
         else:
             ret_val = ret_val[0].split(':')[1].strip(' ')
-        return int(ret_val)
+        return self.filter(int(ret_val))
 
     ## Fire up an rfcomm connection to a certain device on the given channel.
     # Don't forget to set up your phone not to ask for a connection.
@@ -1145,6 +1145,47 @@ class Proximity (threading.Thread):
             self.procid = 0
             pass
         return self.procid
+
+    def prefilter(self, rssi):
+        """
+        Eliminates single outlier (below -200)
+        @param rssi: current scan result rssi
+        @return: rssi without jumping outlier
+        """
+        if len(buf) == 0:    # First value
+            self.last_rssi = rssi
+            self.sus_rssi = 0
+            return rssi
+        elif rssi < -200 and rssi - self.last_rssi < -150:   # Suspecious value
+            if self.sus_rssi == 0:   # No precedence
+                self.sus_rssi = rssi
+                return self.last_rssi
+            else:   # Has precedence
+                self.last_rssi = rssi
+                self.sus_rssi = 0
+                return rssi
+        else:   # Normal case
+            self.last_rssi = rssi
+            self.sus_rssi = 0
+            return rssi
+
+
+    def filter(self, rssi):
+        """
+        Moving average filter (online)
+        @param val: raw rssi value
+        @return: filtered rssi value
+        """
+        val = self.prefilter(rssi)
+        WINDOW = 5  # Window size
+        if len(self.buf) < WINDOW:  # Returns average when buffer is not full
+            self.buf.append(val)
+            return sum(self.buf)/float(len(self.buf))
+        else:   # Returns moving average when buffer is full
+            self.buf.pop(0)
+            self.buf.append(val)
+            return sum(self.buf)/float(WINDOW)
+
 
     def run_cycle(self,dev_mac,dev_channel):
         # reads the distance and averages it over the ringbuffer

@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # blueproximity ++
-SW_VERSION = '0.1.2'
+SW_VERSION = '0.1.3'
 # Add security to your desktop by automatically locking and unlocking 
 # the screen when you and your phone leave/enter the desk. 
 # Think of a proximity detector for your mobile phone via bluetooth.
@@ -13,16 +13,23 @@ SW_VERSION = '0.1.2'
 #  PyGTK (python-gtk2, python-glade2)
 #  Bluetooth (python-bluez)
 
-# copyright by Xiang Gao <xzgao@cs.helsinki.fi> 
+# Copyright by Xiang Gao <xzgao@cs.helsinki.fi>
 # and Secure Systems Group <http://se-sy.org/projects/coco/>
-# this source is licensed under the GPL v2.
+# from University of Helsinki.
+# This source is licensed under the GPL v2.
 
 APP_NAME="blueproximity-plus"
+
+# Debug mode
+DEBUG = False
 
 ## This value gives us the base directory for language files and icons.
 # Set this value to './' for svn version
 # or to '/usr/share/blueproximity/' for packaged version
-dist_path = '/usr/share/blueproximity/' 
+if DEBUG:
+    dist_path = './'
+else:
+    dist_path = '/usr/share/blueproximity/'
 
 
 # system includes
@@ -149,7 +156,8 @@ except:
 # This is the ConfigObj's syntax
 conf_specs = [
     'device_mac=string(max=17,default="")',
-    'device_channel=integer(1,30,default=7)',
+    'device_channel=integer(1,30,default=6)',
+    'enable_context=boolean(default=False)',
     'lock_distance=integer(0,127,default=7)',
     'lock_duration=integer(0,120,default=6)',
     'unlock_distance=integer(0,127,default=4)',
@@ -177,8 +185,6 @@ icon_con = 'blueproximity_error.svg'
 ## The icon shown if we are in pause mode.
 icon_pause = 'blueproximity_pause.svg'
 
-#Added gloabl control var
-with_context_mod = True
 
 ## This class represents the main configuration window and
 # updates the config file after changes made are saved
@@ -628,6 +634,7 @@ Former translators:
         self.gone_live = False
         self.wTree.get_widget("entryMAC").set_text(self.config['device_mac'])
         self.wTree.get_widget("entryChannel").set_value(int(self.config['device_channel']))
+        self.wTree.get_widget("enableContext").set_active(self.config['enable_context'])
         self.wTree.get_widget("hscaleLockDist").set_value(int(self.config['lock_distance']))
         self.wTree.get_widget("hscaleLockDur").set_value(int(self.config['lock_duration']))
         self.wTree.get_widget("hscaleUnlockDist").set_value(int(self.config['unlock_distance']))
@@ -649,12 +656,14 @@ Former translators:
         self.gone_live = False
         self.proxi.dev_mac = self.wTree.get_widget("entryMAC").get_text()
         self.proxi.dev_channel = int(self.wTree.get_widget("entryChannel").get_value())
+        self.proxi.enable_context = self.wTree.get_widget("enableContext").get_active()
         self.proxi.gone_limit = -self.wTree.get_widget("hscaleLockDist").get_value()
         self.proxi.gone_duration = self.wTree.get_widget("hscaleLockDur").get_value()
         self.proxi.active_limit = -self.wTree.get_widget("hscaleUnlockDist").get_value()
         self.proxi.active_duration = self.wTree.get_widget("hscaleUnlockDur").get_value()
         self.config['device_mac'] = str(self.proxi.dev_mac)
         self.config['device_channel'] = str(self.proxi.dev_channel)
+        self.config['enable_context'] = self.wTree.get_widget("enableContext").get_active()
         self.config['lock_distance'] = int(-self.proxi.gone_limit)
         self.config['lock_duration'] = int(self.proxi.gone_duration)
         self.config['unlock_distance'] = int(-self.proxi.active_limit)
@@ -1022,6 +1031,7 @@ class Proximity (threading.Thread):
         self.procid = 0
         self.dev_mac = self.config['device_mac']
         self.dev_channel = self.config['device_channel']
+        self.enable_context = False
         self.ringbuffer_size = self.config['buffer_size']
         self.ringbuffer = [-254] * self.ringbuffer_size
         self.ringbuffer_pos = 0
@@ -1152,7 +1162,7 @@ class Proximity (threading.Thread):
         @param rssi: current scan result rssi
         @return: rssi without jumping outlier
         """
-        if len(buf) == 0:    # First value
+        if len(self.buf) == 0:    # First value
             self.last_rssi = rssi
             self.sus_rssi = 0
             return rssi
@@ -1293,7 +1303,7 @@ class Proximity (threading.Thread):
         duration_count = 0
         state = _("gone")
         proxiCmdCounter = 0
-        if with_context_mod:    # when context module is used
+        if self.enable_context:    # when context module is used
             while not self.Stop:
                 #print "tick"
                 try:

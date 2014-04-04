@@ -21,7 +21,7 @@ SW_VERSION = '0.1.3'
 APP_NAME="blueproximity-plus"
 
 # Debug mode
-DEBUG = False
+DEBUG = True
 
 ## This value gives us the base directory for language files and icons.
 # Set this value to './' for svn version
@@ -37,6 +37,7 @@ import os
 import sys
 import time
 import threading
+import Queue
 import signal
 import syslog
 import locale
@@ -44,7 +45,7 @@ import locale
 #Modified imports
 import json
 import inspect
-from uuid_helper import getUuid
+from uuid_helper import get_uuid
 from decision import *
 from scan import Scan
 from connection import Client
@@ -156,7 +157,7 @@ except:
 # This is the ConfigObj's syntax
 conf_specs = [
     'device_mac=string(max=17,default="")',
-    'device_channel=integer(1,30,default=6)',
+    'device_channel=integer(1,30,default=7)',
     'enable_context=boolean(default=False)',
     'lock_distance=integer(0,127,default=7)',
     'lock_duration=integer(0,120,default=6)',
@@ -1076,59 +1077,6 @@ class Proximity (threading.Thread):
         self.sock = None
         return 0
 
-    ## This function is NOT IN USE. It is a try to create a python only way to 
-    # get the rssi values for a connected device. It does not work at this time.
-    def get_proximity_by_mac(self,dev_mac):
-        sock = bluez.hci_open_dev(dev_id)
-        old_filter = sock.getsockopt( bluez.SOL_HCI, bluez.HCI_FILTER, 14)
-
-        # perform a device inquiry on bluetooth device #0
-        # The inquiry should last 8 * 1.28 = 10.24 seconds
-        # before the inquiry is performed, bluez should flush its cache of
-        # previously discovered devices
-        flt = bluez.hci_filter_new()
-        bluez.hci_filter_all_events(flt)
-        bluez.hci_filter_set_ptype(flt, bluez.HCI_EVENT_PKT)
-        sock.setsockopt( bluez.SOL_HCI, bluez.HCI_FILTER, flt )
-
-        duration = 4
-        max_responses = 255
-        cmd_pkt = struct.pack("BBBBB", 0x33, 0x8b, 0x9e, duration, max_responses)
-        bluez.hci_send_cmd(sock, bluez.OGF_LINK_CTL, bluez.OCF_INQUIRY, cmd_pkt)
-
-        results = []
-
-        done = False
-        while not done:
-            pkt = sock.recv(255)
-            ptype, event, plen = struct.unpack("BBB", pkt[:3])
-            if event == bluez.EVT_INQUIRY_RESULT_WITH_RSSI:
-                pkt = pkt[3:]
-                nrsp = struct.unpack("B", pkt[0])[0]
-                for i in range(nrsp):
-                    addr = bluez.ba2str( pkt[1+6*i:1+6*i+6] )
-                    rssi = struct.unpack("b", pkt[1+13*nrsp+i])[0]
-                    results.append( ( addr, rssi ) )
-                    print "[%s] RSSI: [%d]" % (addr, rssi)
-            elif event == bluez.EVT_INQUIRY_COMPLETE:
-                done = True
-            elif event == bluez.EVT_CMD_STATUS:
-                status, ncmd, opcode = struct.unpack("BBH", pkt[3:7])
-                if status != 0:
-                    print "uh oh..."
-                    printpacket(pkt[3:7])
-                    done = True
-            else:
-                print "unrecognized packet type 0x%02x" % ptype
-
-
-        # restore old filter
-        sock.setsockopt( bluez.SOL_HCI, bluez.HCI_FILTER, old_filter )
-
-        sock.close()
-        return results
-
-
     ## Returns the rssi value of a connection to the given mac address.
     # @param dev_mac mac address of the device to check.
     # This should also be removed but I still have to find a way to read the rssi value from python
@@ -1450,36 +1398,60 @@ class Proximity (threading.Thread):
         self.kill_connection()
 
 if __name__=='__main__':
-    #Get login username as 1st parameter
-    #uname = sys.argv[1]
-    uname = os.path.split(os.path.expanduser('~'))[-1]
-    #Get current directory as 2nd parameter
-    #udir = sys.argv[2]
-    udir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-
-    # Mkdir for data
-    if not os.path.isdir(udir+'/pool'):
-        os.mkdir(udir+'/pool')
+    # User name
+    #uname = os.path.split(os.path.expanduser('~'))[-1]
+    uname = os.path.split(os.getenv('HOME'))[-1]
+    # Src directory path
+    #sdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    sdir = os.getcwd()
+    # Directories: config, data, log
+    udir = os.path.join(os.getenv('HOME'), '.blueproximity-plus')
+    conf_dir = os.path.join(udir, 'config')
+    data_dir = os.path.join(udir, 'data')
+    log_dir = os.path.join(udir, 'log')
+    try:
+        os.mkdir(udir)
+    except OSError:
+        pass
+    try:
+        os.mkdir(conf_dir)
+    except OSError:
+        pass
+    try:
+        os.mkdir(data_dir)
+    except OSError:
+        pass
+    try:
+        os.mkdir(log_dir)
+    except OSError:
+        pass
 
     TAG = 'MAIN'
     # Start Logging thread
-    l = Logging(udir)
+    log_queue = Queue.Queue()
+    log_lock = threading.Lock()
+    l = Logging(log_dir, log_queue, log_lock)
     l.start()
     l.log(TAG, 'Proximity started')
     
     # Initialize LocalUuid, Sample, Connection
-    db = DBHelper(udir)
+    db_queue = Queue.Queue()
+    db_lock = threading.Lock()
+    db = DBHelper(data_dir, db_queue, db_lock)
+    db.createDB()
     idtuple = db.getLocal()
     if not idtuple[0]:
         l.log(TAG,'LocalUuid not found.')
-        uuid = getUuid()
+        uuid = get_uuid()
         db.putLocal((uuid,'')) # store local uuid into database
     else:
         l.log(TAG,'LocalUuid found.')
         uuid = idtuple[1]
 
-    sample = Sample(udir, db)
-    client = Client(udir, db, l,uuid, sample)
+    db.start()
+
+    sample = Sample(data_dir, db)
+    client = Client(data_dir, db_queue, db_lock, log_queue, log_lock, uuid, sample)
     client.start()
 
     # Check for Bind
@@ -1498,17 +1470,7 @@ if __name__=='__main__':
     # read config if any
     configs = []
     new_config = True
-    conf_dir = os.path.join(os.getenv('HOME'),'.blueproximity')
-    try:
-        # check if config directory exists
-        os.mkdir(conf_dir)
-        print(_("Creating new config directory '%s'.") % conf_dir)
-        # we should now look for an old config file and try to move it to a better place...
-        os.rename(os.path.join(os.getenv('HOME'),'.blueproximityrc'),os.path.join(conf_dir,_("standard")+".conf"))
-        print(_("Moved old configuration to the new config directory."))
-    except:
-        # we can't create it because it is already there...
-        pass
+    #conf_dir = os.path.join(os.getenv('HOME'),'.blueproximity')
 
     # now look for .conf files in there
     vdt = Validator()
@@ -1543,13 +1505,13 @@ if __name__=='__main__':
     
     # now start the proximity detection for each configuration
     for config in configs:
-        p = Proximity(config[1],udir,l, uname, uuid, sample, client)
+        p = Proximity(config[1], data_dir, l, uname, uuid, sample, client)
         p.start()
         config.append(p)
     
     configs.sort()
     # the idea behind 'configs' is an array containing the name, the configobj and the proximity object
-    pGui = ProximityGUI(configs,new_config)
+    pGui = ProximityGUI(configs, new_config)
 
     # make GTK threadable 
     gtk.gdk.threads_init()

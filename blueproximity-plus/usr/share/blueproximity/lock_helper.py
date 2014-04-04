@@ -7,13 +7,13 @@
 import os
 import subprocess
 import sys
-from uuid_helper import getUid
+from uuid_helper import get_uid
 
 def deamon(uid):
     os.setuid(uid)
 
 def lockcommand(uname):
-    uid = getUid(uname)
+    uid = get_uid(uname)
     cmd = ['gnome-screensaver-command', '-l']
 
     process = subprocess.Popen(cmd, preexec_fn=deamon(uid), stdout = subprocess.PIPE, stderr = subprocess.PIPE)

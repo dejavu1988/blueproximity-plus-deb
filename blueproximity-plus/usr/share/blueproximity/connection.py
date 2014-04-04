@@ -10,47 +10,49 @@ from uuid_helper import *
 import pika
 from sensor import *
 from dbhelper import *
-from log import Logging
+from log import *
 
 TAG = 'CONN'
 
 class Client(threading.Thread):
-    def __init__(self, udir, dbobj, logging, deviceUuid, sample):
+    def __init__(self, udir, db_queue, db_lock, log_queue, log_lock, deviceUuid, sample):
         threading.Thread.__init__(self)
         self.uuid = deviceUuid
         self.path = udir
-        self.dbhelper = dbobj
+        self.db_queue = db_queue
+        self.db_lock = db_lock
         self.inqueue = 'queue2' #self.uuid
         self.outqueue = 'queue1' #self.uuid + '-r'
         self.connection = None
         self.channel = None
         self.sample = sample
         self.statusResponse = 0
-        self.log = logging
+        self.log_queue = log_queue
+        self.log_lock = log_lock
 
     def run(self): 
-        self.log.log(TAG,'Start Connection')
+        self.log(TAG,'Start Connection')
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='54.229.32.28'))
         self.channel = self.connection.channel()
         print 'Connection and Channel ready.'
-        self.log.log(TAG,'Connection & Channel Ready')
+        self.log(TAG,'Connection & Channel Ready')
 
         self.channel.queue_declare(queue=self.inqueue)  #Queue from Device to Terminal: named with TerminalUUID
         self.channel.queue_declare(queue=self.outqueue) #Queue from Terminal to Device: named with TerminalUUID+'-r'
         print 'Queues declared.'
-        self.log.log(TAG,'Queues declared')
+        self.log(TAG,'Queues declared')
 
         self.channel.queue_purge(queue=self.inqueue)    # clear msg in queue
         self.channel.queue_purge(queue=self.outqueue)
         print 'Queues purged.'
-        self.log.log(TAG,'Queues purged')
+        self.log(TAG,'Queues purged')
 
         self.sendUUID()
         self.channel.basic_consume(self.callback,
                       queue=self.inqueue,
                       no_ack=True)
         print 'Start consuming...'
-        self.log.log(TAG,'Start consuming')
+        self.log(TAG,'Start consuming')
         self.channel.start_consuming()
 
 
@@ -60,7 +62,7 @@ class Client(threading.Thread):
 
         dict_msg = self.parse(body)
         print 'Received msg['+dict_msg['id']+']'
-        self.log.log(TAG,'Received msg['+dict_msg['id']+']')
+        self.log(TAG,'Received msg['+dict_msg['id']+']')
 
         if dict_msg['id'] == 'ID':
             #not for bind, but for initial connection: 
@@ -97,13 +99,13 @@ class Client(threading.Thread):
         print 'Purge queues'
         self.channel.queue_purge(queue=self.inqueue)    # clear msg in queue
         self.channel.queue_purge(queue=self.outqueue)
-        self.log.log(TAG,'Queues purged')
+        self.log(TAG,'Queues purged')
 
     def quit(self):    
         """ Quit thread"""
         self.channel.stop_consuming()
         self.connection.close()
-        self.log.log(TAG,'Connection & channel closed')
+        self.log(TAG,'Connection & channel closed')
 
     def parse(self,data):
         """ Parse json string to dict msg"""
@@ -111,7 +113,8 @@ class Client(threading.Thread):
 
     def recordBindInfo(self, data):
         """Record received uuid msg to pref.json, key='id'"""
-        dumpToPref(data)
+        #dumpToPref(data)
+        pass
 
     def sendUUID(self):
         """ Send UUID"""
@@ -119,7 +122,7 @@ class Client(threading.Thread):
         json_msg = json.dumps(dict_msg)
         print "Send UUID: "+json_msg
         self.send(json_msg+'\n')
-        self.log.log(TAG,'Send UUID: '+json_msg)
+        self.log(TAG,'Send UUID: '+json_msg)
 
     def sendScan(self, ts):
         """ Send SCAN msg to device-side"""
@@ -127,7 +130,7 @@ class Client(threading.Thread):
         json_msg = json.dumps(dict_msg)
         print "Send SCAN: "+json_msg
         self.send(json_msg+'\n')
-        self.log.log(TAG,"Send SCAN: "+json_msg)
+        self.log(TAG,"Send SCAN: "+json_msg)
 
     def sendResult(self, event, decision, timestamp):
         """ Send Comparison Result msg to device-side
@@ -137,7 +140,7 @@ class Client(threading.Thread):
         json_msg = json.dumps(dict_msg)
         print "Send Result: "+json_msg
         self.send(json_msg+'\n')
-        self.log.log(TAG,"Send Result: "+json_msg)
+        self.log(TAG,"Send Result: "+json_msg)
 
     def dumpToPref(self, dict_msg):
         """ Dump dict msg to json file pref.json"""
@@ -153,6 +156,12 @@ class Client(threading.Thread):
         data = json.load(f)
         f.close()
         return data
+
+    def log(self, tag, msg):
+        log(self.log_queue, self.log_lock, tag, msg)
+
+    def db_enqueue(self, tag, custom_tuple):
+        db_enqueue(self.db_queue, self.db_lock, tag, custom_tuple)
 
     #def getStatus(self):
     #    return self.statusCSV and self.statusWAV
@@ -172,16 +181,16 @@ class Client(threading.Thread):
         Feedback: TP - 1, FP - 2, TN - 3, FN - 4
         """
         print 'Response: '+ ts + ':' + val
-        self.log.log(TAG,"Got Response: "+ ts + ':' + val)
+        self.log(TAG,"Got Response: "+ ts + ':' + val)
         self.statusResponse = int(val)
-        self.dbhelper.updateRecord((int(val), int(ts)))
+        self.db_enqueue('UPDATE', (int(val), int(ts)))
 
 
 if __name__ == "__main__":
     #Logging needed
     l = Logging()
     l.start()
-    uuid = getUuid()
+    uuid = get_uuid()
     sample = Sample()
     client = Client(l, uuid, sample)
     client.start()

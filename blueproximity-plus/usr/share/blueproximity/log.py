@@ -6,7 +6,7 @@ import threading
 import time
 import os
 
-DEBUG = True
+DEBUG = False
 
 
 class Logging(threading.Thread):

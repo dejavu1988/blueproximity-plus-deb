@@ -6,7 +6,7 @@ import os
 import threading
 import time
 
-DEBUG = False
+DEBUG = True
 TAG = 'DB'
 
 
@@ -27,13 +27,15 @@ class DBHelper(threading.Thread):
                 self.lock.acquire()
                 if not self.queue.empty():
                     entry = self.queue.get(False)
+                    if DEBUG:
+                        print "DB dequeue " + str(entry)
                     if entry[0] == 'INSERT':
                         self.putRecord(entry[1])
                     elif entry[0] == 'UPDATE':
                         self.updateRecord(entry[1])
                     self.queue.task_done()
                     if DEBUG:
-                        print "DB dequeued.."
+                        print "DB dequeued."
             except IOError as e:
                 print "DB Dequeue IOError(%d)-%s:%s" % (e.errno, e.strerror, e.message)
             finally:
@@ -121,7 +123,7 @@ class DBHelper(threading.Thread):
         if not os.path.isfile(self.path):
             f = open(self.path, 'wb')
             f.close()
-            os.chmod(self.path, 0664)
+            os.chmod(self.path, 664)
 
 
 def db_enqueue(queue, lock, tag, custom_tuple):

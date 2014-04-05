@@ -15,10 +15,11 @@ from log import *
 TAG = 'CONN'
 
 class Client(threading.Thread):
-    def __init__(self, udir, db_queue, db_lock, log_queue, log_lock, deviceUuid, sample):
+    def __init__(self, udir, db, db_queue, db_lock, log_queue, log_lock, deviceUuid, sample):
         threading.Thread.__init__(self)
         self.uuid = deviceUuid
         self.path = udir
+        self.dbhelper = db
         self.db_queue = db_queue
         self.db_lock = db_lock
         self.inqueue = 'queue2' #self.uuid
@@ -81,7 +82,6 @@ class Client(threading.Thread):
             tmppath = self.path+'/pool/'+str(tmpts)
             self.sample.getRemoteSensor().updateFromCSV(tmpts, dict_msg['val'])
             self.sample.getRemoteSensor().exportToCsv(tmppath+'/1.csv')
-            
         elif dict_msg['id'] == 'WAV':
             tmpts = int(dict_msg['ts'])
             self.sample.getRemoteSensor().updateFromWAV(tmpts, dict_msg['val'])
@@ -133,14 +133,19 @@ class Client(threading.Thread):
         self.log(TAG,"Send SCAN: "+json_msg)
 
     def sendResult(self, event, decision, timestamp):
-        """ Send Comparison Result msg to device-side
-            event: Y/N (unlock/lock)
-            decision: T/F (colocated/non-colocated)"""        
+        """
+        Send Comparison Result msg to device-side
+        :event: Y/N (unlock/lock)
+        :decision: T/F (colocated/non-colocated)
+        :timestamp: int
+        """
         dict_msg = {'id':'RS', 'event': event, 'val':decision, 'ts':timestamp}
         json_msg = json.dumps(dict_msg)
         print "Send Result: "+json_msg
         self.send(json_msg+'\n')
         self.log(TAG,"Send Result: "+json_msg)
+        tmp_decision = (1 if 'T' in decision else 0)
+        self.db_enqueue('INSERT', (timestamp, tmp_decision))
 
     def dumpToPref(self, dict_msg):
         """ Dump dict msg to json file pref.json"""

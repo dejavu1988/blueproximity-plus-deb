@@ -344,7 +344,7 @@ class Sample():
         self.feature.setGpsAbs(self.getGpsAbs())
         self.feature.setGpsEucl(self.getGpsEucl())
         self.feature.setGpsExp(self.getGpsExp())
-        self.feature.setGpsSubset(selfgetGpsSubset())
+        self.feature.setGpsSubset(self.getGpsSubset())
         xcorr, dist = getXCorrandDistFromWav(self.local.getAudioRaw(), self.remote.getAudioRaw())
         self.feature.setAudioCorr(xcorr)
         self.feature.setAudioFreq(dist)
@@ -519,11 +519,11 @@ class Sample():
         for key in sdata1.keys():
             prns = []
             prns = sdata1[key].split(',')
-            data[key] = set(prns)
+            data1[key] = set(prns)
         for key in sdata2.keys():
             prns = []
             prns = sdata2[key].split(',')
-            data[key] = set(prns)
+            data2[key] = set(prns)
         if (len(data1)>0) and (len(data2)>0):
             n_entry = 0
             subset_count = 0

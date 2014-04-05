@@ -53,7 +53,7 @@ from sensor import *
 from bind import Bind
 from lock_helper import lockcommand
 from calculate import Calculate
-from log import Logging
+from log import *
 from dbhelper import DBHelper
 
 #Translation stuff
@@ -1411,18 +1411,22 @@ if __name__=='__main__':
     log_dir = os.path.join(udir, 'log')
     try:
         os.mkdir(udir)
+        os.chmod(udir, 775)
     except OSError:
         pass
     try:
         os.mkdir(conf_dir)
+        os.chmod(conf_dir, 775)
     except OSError:
         pass
     try:
         os.mkdir(data_dir)
+        os.chmod(data_dir, 775)
     except OSError:
         pass
     try:
         os.mkdir(log_dir)
+        os.chmod(log_dir, 775)
     except OSError:
         pass
 
@@ -1432,7 +1436,7 @@ if __name__=='__main__':
     log_lock = threading.Lock()
     l = Logging(log_dir, log_queue, log_lock)
     l.start()
-    l.log(TAG, 'Proximity started')
+    log(log_queue, log_lock, TAG, 'Proximity started')
     
     # Initialize LocalUuid, Sample, Connection
     db_queue = Queue.Queue()
@@ -1441,17 +1445,17 @@ if __name__=='__main__':
     db.createDB()
     idtuple = db.getLocal()
     if not idtuple[0]:
-        l.log(TAG,'LocalUuid not found.')
+        log(log_queue, log_lock, TAG,'LocalUuid not found.')
         uuid = get_uuid()
         db.putLocal((uuid,'')) # store local uuid into database
     else:
-        l.log(TAG,'LocalUuid found.')
+        log(log_queue, log_lock, TAG,'LocalUuid found.')
         uuid = idtuple[1]
 
     db.start()
 
     sample = Sample(data_dir, db)
-    client = Client(data_dir, db_queue, db_lock, log_queue, log_lock, uuid, sample)
+    client = Client(data_dir, db, db_queue, db_lock, log_queue, log_lock, uuid, sample)
     client.start()
 
     # Check for Bind

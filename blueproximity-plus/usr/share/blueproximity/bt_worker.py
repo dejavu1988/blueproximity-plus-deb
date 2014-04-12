@@ -8,37 +8,39 @@ import time
 import struct
 import threading
 import bluetooth._bluetooth as bluez
-from log import Logging
+from log import *
 
 TAG = 'BT'
 
 class BluetoothScan(threading.Thread):
     
-    def __init__(self, logging, bt_dict):
+    def __init__(self, log_queue, log_lock, bt_dict):
         threading.Thread.__init__(self)
         self.btDevices = bt_dict
         self.dev_id = 0
         self.scanning = False
         self.time_init = 0
-        self.log = logging
+        self.log_queue = log_queue
+        self.log_lock = log_lock
 
     def run(self):
         self.scanning = True
-        self.log.log(TAG,'Bluetooth scan started')
+        self.log(TAG,'Bluetooth scan started')
         self.time_init = int(time.time()*1000)
         try:
             sock = bluez.hci_open_dev(self.dev_id)
         except:
             print "error accessing bluetooth device..."
             sys.exit(1)
-        self.log.log(TAG,'BT device accessed')
+        self.log(TAG,'BT device accessed')
 
+        mode = 0
         try:
             mode = read_inquiry_mode(sock)
         except Exception, e:
             print "error reading inquiry mode.  "
             #sys.exit(1)
-        self.log.log(TAG,'Read inquiry mode')
+        self.log(TAG,'Read inquiry mode')
         
         if mode != 1:
             #print "writing inquiry mode..."
@@ -47,15 +49,18 @@ class BluetoothScan(threading.Thread):
             except Exception, e:
                 print "error writing inquiry mode.  Are you sure you're root?"
                 sys.exit(1)
-            self.log.log(TAG,'Write inquiry mode')
+            self.log(TAG,'Write inquiry mode')
         
         while (self.time_init + 10000 >= int(time.time()*1000)):
             
             device_inquiry_with_with_rssi(sock, self.btDevices)
-            self.log.log(TAG,'BT inquiry once')
+            self.log(TAG,'BT inquiry once')
 
         self.scanning = False
-        self.log.log(TAG,'Bluetooth scan terminated')
+        self.log(TAG,'Bluetooth scan terminated')
+
+    def log(self, tag, msg):
+        log(self.log_queue, self.log_lock, tag, msg)
 
 def read_inquiry_mode(sock):
         """returns the current mode, or -1 on failure"""

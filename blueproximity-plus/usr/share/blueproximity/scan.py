@@ -2,25 +2,28 @@
 
 import threading
 from audio_worker import *
-#from gps_worker import *
 from wifi_worker import *
 from bt_worker import *
-#from uuid_helper import *
 from sensor import *
-from log import Logging
+from log import *
+
+GPS_ENABLED = False
+if GPS_ENABLED:
+    from gps_worker import *
 
 """Pass a new Sensor Object to store local scanning results (raw)"""
 TAG = 'SCAN'
 
 class Scan(threading.Thread):
-    def __init__(self, udir, logging, sensor):
+    def __init__(self, udir, log_queue, log_lock, sensor):
         threading.Thread.__init__(self)
         self.path = udir
         self.sensor = sensor
-        self.log = logging
+        self.log_queue = log_queue
+        self.log_lock = log_lock
 
     def run(self):
-        self.log.log(TAG,'Scan started')
+        self.log(TAG,'Scan started')
         gpsDict = {}
         gpsTsDict = {}
         gpsCoordList = []
@@ -28,21 +31,24 @@ class Scan(threading.Thread):
         btDict = {}
         threads = []
         #gThr = GpsScan(self.log, gpsDict,gpsTsDict,gpsCoordList)
-        wThr = WifiScan(self.log, wifiDict)
-        bThr = BluetoothScan(self.log, btDict)
-        aThr = AudioScan(self.log, self.path+'/pool/'+str(self.sensor.getTime()))
+        wThr = WifiScan(self.log_queue, self.log_lock, wifiDict)
+        bThr = BluetoothScan(self.log_queue, self.log_lock, btDict)
+        aThr = AudioScan(self.log_queue, self.log_lock, os.path.join(self.path,str(self.sensor.getTime())))
         #threads.append(gThr)
         threads.append(wThr)
         threads.append(bThr)
         threads.append(aThr)
-        self.log.log(TAG,'Scan thread pool initialized')
+        self.log(TAG,'Scan thread pool initialized')
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        self.log.log(TAG,'Scan thread pool done')
+        self.log(TAG,'Scan thread pool done')
         #exportToCsv('tmp.csv',wifiDict,btDict,gpsDict,gpsTsDict,gpsCoordList)
         commitToObjects(self.path, self.sensor,wifiDict,btDict,gpsDict,gpsTsDict,gpsCoordList)
+
+    def log(self, tag, msg):
+        log(self.log_queue, self.log_lock, tag, msg)
 
 #def exportToCsv(filepath,wifiDict,btDict,gpsDict,gpsTsDict,gpsCoordList):
 #    uuid = getUuid()
@@ -87,11 +93,12 @@ def commitToObjects(path, s, wifiDict,btDict,gpsDict,gpsTsDict,gpsCoordList):
         coord[coordlist[0]] = coordlist[1]
 
     s.update(wifi, bt, gps, gpst, coord)
-    wavPath = path+'/pool/'+str(s.getTime()) + '/0.wav'
+    wavPath = os.path.join(os.path.join(path, str(s.getTime())), '0.wav')
+    csvPath = os.path.join(os.path.join(path, str(s.getTime())), '0.csv')
     s.updateAudio(wavPath)
     s.setCsvStatus()
     s.setWavStatus()
-    s.exportToCsv(path+'/pool/'+str(s.getTime()) + '/0.csv')
+    s.exportToCsv(csvPath)
 
 
 if __name__ == '__main__':

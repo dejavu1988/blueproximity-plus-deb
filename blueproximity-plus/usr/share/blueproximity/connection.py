@@ -22,40 +22,52 @@ class Client(threading.Thread):
         self.dbhelper = db
         self.db_queue = db_queue
         self.db_lock = db_lock
-        self.inqueue = 'queue2' #self.uuid
-        self.outqueue = 'queue1' #self.uuid + '-r'
+        self.inqueue = deviceUuid
+        self.outqueue = ''
         self.connection = None
         self.channel = None
         self.sample = sample
         self.statusResponse = 0
         self.log_queue = log_queue
         self.log_lock = log_lock
+        self.running = False
 
-    def run(self): 
-        self.log(TAG,'Start Connection')
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='54.229.32.28'))
-        self.channel = self.connection.channel()
-        print 'Connection and Channel ready.'
-        self.log(TAG,'Connection & Channel Ready')
+    def run(self):
+        while not self.outqueue:
+            time.sleep(1)
+        flag = True
+        while flag:
+            self.log(TAG,'Start Connection')
+            try:
+                self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='54.229.32.28'))
+            except:
+                self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='54.229.32.28'))
+            self.channel = self.connection.channel()
+            print 'Connection and Channel ready.'
+            self.log(TAG,'Connection & Channel Ready')
 
-        self.channel.queue_declare(queue=self.inqueue)  #Queue from Device to Terminal: named with TerminalUUID
-        self.channel.queue_declare(queue=self.outqueue) #Queue from Terminal to Device: named with TerminalUUID+'-r'
-        print 'Queues declared.'
-        self.log(TAG,'Queues declared')
+            self.channel.queue_declare(queue=self.inqueue)  #Queue from Device to Terminal: named with TerminalUUID
+            self.channel.queue_declare(queue=self.outqueue) #Queue from Terminal to Device: named with TerminalUUID+'-r'
+            print 'Queues declared.'
+            self.log(TAG,'Queues declared')
 
-        self.channel.queue_purge(queue=self.inqueue)    # clear msg in queue
-        self.channel.queue_purge(queue=self.outqueue)
-        print 'Queues purged.'
-        self.log(TAG,'Queues purged')
+            self.channel.queue_purge(queue=self.inqueue)    # clear msg in queue
+            self.channel.queue_purge(queue=self.outqueue)
+            print 'Queues purged.'
+            self.log(TAG,'Queues purged')
 
-        self.sendUUID()
-        self.channel.basic_consume(self.callback,
-                      queue=self.inqueue,
-                      no_ack=True)
-        print 'Start consuming...'
-        self.log(TAG,'Start consuming')
-        self.channel.start_consuming()
-
+            self.channel.basic_consume(self.callback,
+                              queue=self.inqueue,
+                              no_ack=True)
+            print 'Start consuming...'
+            self.log(TAG,'Start consuming')
+            try:
+                self.running = True
+                self.channel.start_consuming()
+            except:
+                self.running = False
+                #self.channel.stop_consuming()
+            self.connection.close()
 
     def callback(self, ch, method, properties, body):
         """Callback on reception"""
@@ -65,35 +77,26 @@ class Client(threading.Thread):
         print 'Received msg['+dict_msg['id']+']'
         self.log(TAG,'Received msg['+dict_msg['id']+']')
 
-        if dict_msg['id'] == 'ID':
-            #not for bind, but for initial connection: 
-            #give Device uuid info to declare current Terminal
-            #in case of multiple Terminals
-            #self.recordBindInfo(dict_msg)
-            #record = self.loadFromPref()
-            restuple = self.dbhelper.getBind()
-            if not restuple[0]:
-                self.dbhelper.putBind((dict_msg['uid'],''))
-                print 'Put Bind'
-        elif dict_msg['id'] == 'FB':
+        if dict_msg['id'] == 'FB':
             self.handleFeedback(dict_msg['ts'] ,dict_msg['val'])
         elif dict_msg['id'] == 'CSV':
             tmpts = int(dict_msg['ts'])
-            tmppath = self.path+'/pool/'+str(tmpts)
-            self.sample.getRemoteSensor().updateFromCSV(tmpts, dict_msg['val'])
-            self.sample.getRemoteSensor().exportToCsv(tmppath+'/1.csv')
+            tmppath = os.path.join(self.path,str(tmpts))
+            self.sample.remote.updateFromCSV(tmpts, dict_msg['val'])
+            self.sample.remote.exportToCsv(os.path.join(tmppath,'1.csv'))
         elif dict_msg['id'] == 'WAV':
             tmpts = int(dict_msg['ts'])
-            self.sample.getRemoteSensor().updateFromWAV(tmpts, dict_msg['val'])
+            self.sample.remote.updateFromWAV(tmpts, dict_msg['val'])
             self.channel.queue_purge(queue=self.inqueue)
             print 'Queues purged.'
 
     def send(self, msg):
         """Send message with existing channel"""
-        self.channel.basic_publish(exchange='',
-                      routing_key=self.outqueue,
-                      body=msg)
-        print " [x] Sent %r" % (msg,)
+        if self.running:
+            self.channel.basic_publish(exchange='',
+                        routing_key=self.outqueue,
+                        body=msg)
+            print " [x] Sent %r" % (msg,)
 
     def purge(self):
         print 'Purge queues'
@@ -110,11 +113,6 @@ class Client(threading.Thread):
     def parse(self,data):
         """ Parse json string to dict msg"""
         return json.loads(data)
-
-    def recordBindInfo(self, data):
-        """Record received uuid msg to pref.json, key='id'"""
-        #dumpToPref(data)
-        pass
 
     def sendUUID(self):
         """ Send UUID"""
@@ -141,26 +139,10 @@ class Client(threading.Thread):
         """
         dict_msg = {'id':'RS', 'event': event, 'val':decision, 'ts':timestamp}
         json_msg = json.dumps(dict_msg)
-        print "Send Result: "+json_msg
         self.send(json_msg+'\n')
         self.log(TAG,"Send Result: "+json_msg)
         tmp_decision = (1 if 'T' in decision else 0)
         self.db_enqueue('INSERT', (timestamp, tmp_decision))
-
-    def dumpToPref(self, dict_msg):
-        """ Dump dict msg to json file pref.json"""
-        filePath = 'pref.json'
-        f = open(filePath,'w')
-        json.dump(dict_msg, f)
-        f.close()
-
-    def loadFromPref(self):
-        """ Load json from pref.json"""
-        filePath = 'pref.json'
-        f = open(filePath,'r')
-        data = json.load(f)
-        f.close()
-        return data
 
     def log(self, tag, msg):
         log(self.log_queue, self.log_lock, tag, msg)
@@ -188,7 +170,11 @@ class Client(threading.Thread):
         print 'Response: '+ ts + ':' + val
         self.log(TAG,"Got Response: "+ ts + ':' + val)
         self.statusResponse = int(val)
-        self.db_enqueue('UPDATE', (int(val), int(ts)))
+        if ts != "":    #Normal response
+            self.db_enqueue('UPDATE', (int(val), int(ts)))
+        else:   #Proactive FN response
+            curts = int(time.time())
+            self.db_enqueue('ADDFN', (curts, int(val)))
 
 
 if __name__ == "__main__":

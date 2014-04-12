@@ -2,13 +2,14 @@
 
 import pyaudio
 import wave
+import os
 import threading
-from log import Logging
+from log import *
 
 TAG = 'AUDIO'
 
 class AudioScan(threading.Thread):
-    def __init__(self, logging, path='.'):
+    def __init__(self, log_queue, log_lock, path='.'):
         threading.Thread.__init__(self)
         self.FILEPATH = path
         self.CHUNK = 1024
@@ -17,10 +18,11 @@ class AudioScan(threading.Thread):
         self.RATE = 44100
         self.RECORD_SECONDS = 10
         self.WAVE_OUTPUT_FILENAME = "0.wav"
-        self.log = logging
+        self.log_queue = log_queue
+        self.log_lock = log_lock
 
     def run(self): 
-        self.log.log(TAG,'Audio scan started')
+        self.log(TAG,'Audio scan started')
         p = pyaudio.PyAudio()
 
         stream = p.open(format=self.FORMAT,
@@ -28,7 +30,7 @@ class AudioScan(threading.Thread):
                 rate=self.RATE,
                 input=True,
                 frames_per_buffer=self.CHUNK)
-        self.log.log(TAG,'Audio stream started')
+        self.log(TAG,'Audio stream started')
         #print("* recording")
 
         frames = []
@@ -42,15 +44,19 @@ class AudioScan(threading.Thread):
         stream.stop_stream()
         stream.close()
         p.terminate()
-        self.log.log(TAG,'Audio stream terminated')
+        self.log(TAG,'Audio stream terminated')
 
-        wf = wave.open(self.FILEPATH+'/'+self.WAVE_OUTPUT_FILENAME, 'wb')
+        wf = wave.open(os.path.join(self.FILEPATH, self.WAVE_OUTPUT_FILENAME), 'wb')
         wf.setnchannels(self.CHANNELS)
         wf.setsampwidth(p.get_sample_size(self.FORMAT))
         wf.setframerate(self.RATE)
         wf.writeframes(b''.join(frames))
         wf.close()
-        self.log.log(TAG,'Audio scan ended, wave dumped')
+        self.log(TAG,'Audio scan ended, wave dumped')
+
+    def log(self, tag, msg):
+        log(self.log_queue, self.log_lock, tag, msg)
+
 
 if __name__ == "__main__":
     AudioScan().start()

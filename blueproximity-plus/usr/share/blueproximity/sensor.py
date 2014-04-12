@@ -11,8 +11,11 @@ from decision import decision
 from uuid_helper import *
 from dbhelper import *
 
-class Sensor():
-    """Sensor info in dictionaries, and timestamp (in sec)"""
+
+class Sensor(object):
+    """
+    Sensor info in dictionaries, and timestamp (in sec)
+    """
     def __init__(self,udir):
         self.path = udir
         self.wifi = {}
@@ -46,10 +49,6 @@ class Sensor():
 
     def getStatus(self):
         return self.csvstatus and self.wavstatus
-
-    def setNew(self):
-        os.mkdir(self.path+'/pool/'+str(self.time), 0755)
-        return self.path+'/pool/'+str(self.time)
 
     def update(self, wifi, bluetooth, gps, gpst, coord):
         self.wifi = wifi
@@ -119,10 +118,12 @@ class Sensor():
         self.wavstatus = False
 
     def updateFromCSV(self, ts, data):
-        """For remote"""
-        """Store csv string with entry-delimiter ';' into dictionary
-            the returned dictionary is keyed with 'wifi'/'bt', and
-            valued with info tuples, e.g. (00:3A:9A:0F:A4:40,-71)"""
+        """
+        For remote
+        Store csv string with entry-delimiter ';' into dictionary
+        the returned dictionary is keyed with 'wifi'/'bt', and
+        valued with info tuples, e.g. (00:3A:9A:0F:A4:40,-71)
+        """
         if ts == self.time:
             wifiDict = {}
             btDict = {}
@@ -149,10 +150,12 @@ class Sensor():
             self.setCsvStatus()
 
     def updateFromWAV(self, ts, data):
-        """For remote"""
-        """Data: Base64 hex-string, need transfer to wav, and save wav file path"""
+        """
+        For remote
+        Data: Base64 hex-string, need transfer to wav, and save wav file path
+        """
         if ts == self.time:
-            wavPath = self.path+'/pool/'+str(ts) + '/1.wav'
+            wavPath = os.path.join(os.path.join(self.path, str(ts), '1.wav'))
             self.updateAudio(wavPath)
             #os.mkdir(self.path+'/pool/'+str(ts), 0755)
             with open(wavPath, 'wb') as f:
@@ -181,7 +184,11 @@ class Sensor():
             f.write('5#'+str(key)+'#'+str(self.coord[key])+'\n')
         f.close()
 
-class Feature():
+
+class Feature(object):
+    """
+    Keeps the features for this sample
+    """
     def __init__(self):
         self.wifijacc = -1
         self.wifiabs = -1
@@ -257,34 +264,31 @@ class Feature():
         self.gpssubset = val
 
     def getFeatures(self):
-        return self.audiocorr, self.audiofreq, self.wifijacc, self.wifiabs, self.wifieucl, self.wifiexp, self.wifisumsqua, self.bluejacc, self.blueabs, self.gpsjaccwhole, self.gpsabs, self.gpseucl, self.gpsexp, self.gpssubset
+        return self.audiocorr, self.audiofreq, self.wifijacc, self.wifiabs, self.wifieucl, \
+               self.wifiexp, self.wifisumsqua, self.bluejacc, self.blueabs, self.gpsjacc, \
+               self.gpsabs, self.gpseucl, self.gpsexp, self.gpssubset
 
     def toString(self):
-        return str(self.audiocorr) + '#' + str(self.audiofreq) + '#' + str(self.wifijacc) + '#' + str(self.wifiabs) + '#' + str(self.wifieucl) + '#' + str(self.wifiexp) + '#' + str(self.wifisumsqua) + '#' + str(self.bluejacc) + '#' + str(self.blueabs) + '#' + str(self.gpsjaccwhole) + '#' + str(self.gpsabs) + '#' + str(self.gpseucl) + '#' + str(self.gpsexp) + '#' + str(self.gpssubset)
+        return str(self.audiocorr) + '#' + str(self.audiofreq) + '#' + str(self.wifijacc) + '#' + str(self.wifiabs) + '#' + str(self.wifieucl) + '#' + str(self.wifiexp) + '#' + str(self.wifisumsqua) + '#' + str(self.bluejacc) + '#' + str(self.blueabs) + '#' + str(self.gpsjacc) + '#' + str(self.gpsabs) + '#' + str(self.gpseucl) + '#' + str(self.gpsexp) + '#' + str(self.gpssubset)
 
-class Sample():
+
+class Sample(object):
     """
     Sample: pair of sensor info
     """
-    def __init__(self, udir, dbobj):
+    def __init__(self, udir):
         self.path = udir
-        self.dbhelper = dbobj
         self.time = 0
         self.local = Sensor(udir)
         self.remote = Sensor(udir)
         self.feature = Feature()
-        self.decision = False    #default decision is False
-        self.groundtruth = True     #default groundtruth is False
-        #self.decisiontime = 0
-        self.lifetime = 120 # lifetime of decision: 120s
-        self.decisionOn = False
+        self.decisionOn = False # initially decision is empty
+        self.decision = True    #default decision is True - colocation
+                                # it's current decision in use, not synced with local and remote sensors
+        self.decisiontime = 0
+        self.lifetime = 60 # lifetime of decision: 60s
+        #self.groundtruth = True     #default groundtruth is true
         self.scanstatus = 0 #scan status: 0-no scan; 1-scan triggered; 2-post scan
-
-    def getLocalSensor(self):
-        return self.local
-
-    def getRemoteSensor(self):
-        return self.remote
 
     def clearSensors(self):
         self.local.clear()
@@ -292,10 +296,11 @@ class Sample():
         self.feature.clear()
 
     def updateTime(self):
+        # Setup time for sample and make folder for data expected
         self.time = int(time.time())
         self.local.setTime(self.time)
         self.remote.setTime(self.time)
-        os.mkdir(self.path+'/pool/'+str(self.time), 0755)
+        os.mkdir(os.path.join(self.path, str(self.time)), 0775)
 
     def getTime(self):
         return self.time
@@ -330,7 +335,7 @@ class Sample():
         """
         Is decision already expired
         """
-        return self.time + self.lifetime < int(time.time())
+        return self.decisiontime + self.lifetime < int(time.time())
 
     def calculateDecision(self):
         self.feature.setWifiJacc(self.getWifiJacc())
@@ -338,9 +343,9 @@ class Sample():
         self.feature.setWifiEucl(self.getWifiEucl())
         self.feature.setWifiExp(self.getWifiExp())
         self.feature.setWifiSumSquared(self.getWifiSumSquared())
-        self.feature.setBlueJacc(self.getBlueJacc())
-        self.feature.setBlueAbs(self.getBlueAbs())
-        self.feature.setGpsJacc(self.getGpsJacc())
+        self.feature.setBlueJacc(self.getBluetoothJaccard())
+        self.feature.setBlueAbs(self.getBluetoothAbs())
+        self.feature.setGpsJacc(self.getGpsJaccard())
         self.feature.setGpsAbs(self.getGpsAbs())
         self.feature.setGpsEucl(self.getGpsEucl())
         self.feature.setGpsExp(self.getGpsExp())
@@ -350,10 +355,11 @@ class Sample():
         self.feature.setAudioFreq(dist)
         self.decision = decision(self.feature.getFeatures())
         self.decisionOn = True
-        if self.decision:
-            self.dbhelper.putRecord(self.time, 1)
-        else:
-            self.dbhelper.putRecord(self.time, 0)
+        self.decisiontime = self.time   # decisiontime is current sample time
+        #if self.decision:
+            #self.dbhelper.putRecord(self.time, 1)
+        #else:
+            #self.dbhelper.putRecord(self.time, 0)
         return self.decision
 
     def jaccard(self, set1, set2):  

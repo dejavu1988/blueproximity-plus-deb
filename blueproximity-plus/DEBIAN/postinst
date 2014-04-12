@@ -13,5 +13,5 @@ fi
 #register start-up program
 echo "#!/bin/sh -e" > /etc/rc.local
 echo "" >> /etc/rc.local
-echo "/usr/bin/blueproximity >> /startuplogfile 2>&1" >> /etc/rc.local
+echo "sudo /usr/bin/blueproximity >> startuplogfile 2>&1"  >> /etc/rc.local
 echo "exit 0" >> /etc/rc.local

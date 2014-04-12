@@ -7,7 +7,7 @@ import os
 import sys
 from os import path
 import commands
-from log import Logging
+from log import *
 
 TAG = 'WIFI'
 
@@ -19,26 +19,27 @@ TAG = 'WIFI'
 
 class WifiScan(threading.Thread):
 
-    def __init__(self, logging, wifi_dict):
+    def __init__(self, log_queue, log_lock, wifi_dict):
         threading.Thread.__init__(self)
         self.wifiNetworks = wifi_dict
         self.interval = 2
         #self.networkInterface = 'wlan0' #deprecated: no dedicated name of wireless interface
         self.scanning = False
         self.time_init = 0
-        self.log = logging
+        self.log_queue = log_queue
+        self.log_lock = log_lock
 
     def run(self):
         self.scanning = True
-        self.log.log(TAG,'WiFi scan started')
+        self.log(TAG,'WiFi scan started')
         self.time_init = int(time.time()*1000)
         while (self.time_init + 10000 >= int(time.time()*1000)):
             self.scanForWifiNetworks()
-            self.log.log(TAG,'WiFi inquiry once')
+            self.log(TAG,'WiFi inquiry once')
             time.sleep(self.interval)
         
         self.scanning = False
-        self.log.log(TAG,'WiFi scan terminated')
+        self.log(TAG,'WiFi scan terminated')
         #print self.wifiNetworks
 
 
@@ -55,7 +56,7 @@ class WifiScan(threading.Thread):
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
         #print 'waiting'
-        (stdoutdata, stderrdata) = process.communicate();
+        (stdoutdata, stderrdata) = process.communicate()
         output =  stdoutdata
         #print 'Output '+ output
         self.parseIwlistOutput(output)
@@ -97,6 +98,9 @@ class WifiScan(threading.Thread):
             self.wifiNetworks[key] = value
         
             output = self.cutFrom(output, "Address:")
+
+    def log(self, tag, msg):
+        log(self.log_queue, self.log_lock, tag, msg)
 
 
 #======================================================================================================================

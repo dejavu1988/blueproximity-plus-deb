@@ -3,11 +3,13 @@ set -e
 # Automatically added by dh_installdocs
 if [ "$1" = remove ] || [ "$1" = upgrade ] && \
    which install-docs >/dev/null 2>&1; then
-	install-docs -r blueproximity
+	install-docs -r blueproximity-plus
 fi
 # End automatically added section
 # Automatically added by dh_pysupport
 if which update-python-modules >/dev/null 2>&1; then
-	update-python-modules -c -b blueproximity.dirs
+	update-python-modules -c -b blueproximity-plus.dirs
 fi
 # End automatically added section
+rm  ~/.config/autostart/blueproximity-plus.desktop
+

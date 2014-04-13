@@ -99,16 +99,18 @@ class Client(threading.Thread):
             print " [x] Sent %r" % (msg,)
 
     def purge(self):
-        print 'Purge queues'
-        self.channel.queue_purge(queue=self.inqueue)    # clear msg in queue
-        self.channel.queue_purge(queue=self.outqueue)
-        self.log(TAG,'Queues purged')
+        if self.running:
+            print 'Purge queues'
+            self.channel.queue_purge(queue=self.inqueue)    # clear msg in queue
+            self.channel.queue_purge(queue=self.outqueue)
+            self.log(TAG,'Queues purged')
 
     def quit(self):    
         """ Quit thread"""
-        self.channel.stop_consuming()
-        self.connection.close()
-        self.log(TAG,'Connection & channel closed')
+        if self.running:
+            self.channel.stop_consuming()
+            self.connection.close()
+            self.log(TAG,'Connection & channel closed')
 
     def parse(self,data):
         """ Parse json string to dict msg"""

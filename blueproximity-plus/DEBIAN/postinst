@@ -2,16 +2,14 @@
 set -e
 # Automatically added by dh_installdocs
 if [ "$1" = "configure" ] && which install-docs >/dev/null 2>&1; then
-	install-docs -i /usr/share/doc-base/blueproximity
+	install-docs -i /usr/share/doc-base/blueproximity-plus
 fi
 # End automatically added section
 # Automatically added by dh_pysupport
 if [ "$1" = "configure" ] && which update-python-modules >/dev/null 2>&1; then
-	update-python-modules -b blueproximity.dirs
+	update-python-modules -b blueproximity-plus.dirs
 fi
 # End automatically added section
 #register start-up program
-echo "#!/bin/sh -e" > /etc/rc.local
-echo "" >> /etc/rc.local
-echo "sudo /usr/bin/blueproximity >> startuplogfile 2>&1"  >> /etc/rc.local
-echo "exit 0" >> /etc/rc.local
+cp /usr/share/applications/blueproximity-plus.desktop ~/.config/autostart/
+

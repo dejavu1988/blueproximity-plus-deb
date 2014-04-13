@@ -1,0 +1,25 @@
+blueproximity-plus v0.1.4
+
+Blueproximity++ is an application that tries to make security easy-to-use. Once you have installed it on your PC and phone, your PC will automatically unlock whenever it detects that your phone is nearby (without you having to type a password). Your PC will automatically lock if the phone goes out of range. 
+
+To do this, the application on your phone and PC use their on-board sensors to “measure” the environment. Specifically we record nearby WiFi, Bluetooth devices, and record short bursts of ambient audio. We will use this information and your feedback to evaluate different techniques. We will anonymize all your information collected from your devices, and make it available for inspection upon request.
+
+The application that you are going to use is to provide user-friendly security enhancements for PC screen locks. First your Android phone and Linux PC will be “bound” or “paired”. Thereafter, we ask you to keep your phone with you (e.g., in your pocket) as much as possible. Your PC screen unlocks when you are near the PC, and it locks when you go walk away from the PC. Both locking or unlocking will be done automatically without extra user interaction like typing the password. 
+
+Requirements
+    WiFi & Bluetooth support
+
+Configuration
+    1. Before binding, please make sure that your both devices are unpaired and there's no remnant registration on either side.
+    2. Open your Android app: click the 'visibility' icon in the top right corner to grant 300 sec visibility, and click the 'bind' icon next to it to prepare for binding.
+(screenshot)
+    3. On the Terminal, Config GUI - Bluetooth Device panel: click "Scan for devices" to discover neighbour devices. This will take 11 sec.
+    4. Select your target device from the device list, and click "Use selected device" to trigger Bluetooth Pairing & App Binding. This will take 2-5 sec. And you will see dialogs on both sides asking for PIN matching, and soon another dialogue asking for granting access to given Bluetooth service. You should confirm them.
+(screenshot)
+    5. If all 3 fields (MAC Address, RFCOMM Channel, Device UUID) are filled with info, you have finished binding successfully. And you will also see the binding info from the Android screen. Waiting overtime with empty Device UUID field means your Bluetooth module is not well setup. Please check the 2nd step, remove the config file, and redo the configuration.
+    6. By clicking "Close" button, configuration is done.
+
+Screen lock commands:
+ * Un-/Locking gnome-screenserver
+    gnome-screensaver-command -l
+    gnome-screensaver-command -d

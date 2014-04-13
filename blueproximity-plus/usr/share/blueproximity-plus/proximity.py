@@ -21,7 +21,7 @@ SW_VERSION = '0.1.4'
 APP_NAME="blueproximity-plus"
 
 # Debug mode
-DEBUG = True
+DEBUG = False
 
 ## This value gives us the base directory for language files and icons.
 # Set this value to './' for svn version
@@ -29,7 +29,7 @@ DEBUG = True
 if DEBUG:
     dist_path = './'
 else:
-    dist_path = '/usr/share/blueproximity/'
+    dist_path = '/usr/share/blueproximity-plus/'
 
 
 # system includes

@@ -1,14 +1,12 @@
-This package was debianized by Lars Friedrichs <LarsFriedrichs@gmx.de> on
-Fri, 17 Aug 2007 21:33:21 +0200.
+This package was debianized by Xiang Gao <rekygx@gmail.com> on
+Sat, 12 Apr 2014 16:39:20 +0200.
 
-It was downloaded from http://sourceforge.net/project/showfiles.php?group_id=203022
+Author: Xiang Gao <rekygx@gmail.com>
 
-Upstream Author: Lars Friedrichs <LarsFriedrichs@gmx.de>
+Origin Maintainer: Lars Friedrichs <LarsFriedrichs@gmx.de>
 
 Contributors:
-   Tobias Jakobs (Icons)
-   Zsolt Mazolt (Programming Tipps, KDE Version)
-   Mark Mruss (Translation Code, http://www.learningpython.com)
+   Secure Systems Group, University of Helsinki
 
 Translators:
    de Lars Friedrichs <LarsFriedrichs@gmx.de>
@@ -26,7 +24,7 @@ Translators:
    sv Alexander Jönsson <tp-sv@listor.tp-sv.se>
    sv Daniel Nylander <dnylander@users.sourceforge.net>
 
-Copyright: 2007, 2008 Lars Friedrichs
+Copyright: 2014 Xiang Gao, Secure Systems Group, University of Helsinki
 
 License:
 
@@ -47,6 +45,5 @@ License:
 On Debian systems, the complete text of the GNU General
 Public License can be found in `/usr/share/common-licenses/GPL-2'.
 
-The Debian packaging is (C) 2007, 2008, Lars Friedrichs <LarsFriedrichs@gmx.de> and
-is licensed under the GPL-2, see above.
+The Debian packaging is (C) 2014 Xiang Gao, Secure Systems Group, University of Helsinki and is licensed under the GPL-2, see above.
 

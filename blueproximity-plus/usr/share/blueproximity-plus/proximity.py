@@ -159,8 +159,8 @@ conf_specs = [
     'device_channel=integer(1,30,default=7)',
     'device_uuid=string(max=40,default="")',
     'enable_context=boolean(default=False)',
-    'lock_distance=integer(0,127,default=7)',
-    'lock_duration=integer(0,120,default=6)',
+    'lock_distance=integer(0,127,default=8)',
+    'lock_duration=integer(0,120,default=8)',
     'unlock_distance=integer(0,127,default=4)',
     'unlock_duration=integer(0,120,default=1)',
     'lock_command=string(default=''gnome-screensaver-command -l'')',
@@ -524,40 +524,24 @@ class ProximityGUI (object):
     def aboutPressed(self, widget, data = None):
         logo = gtk.gdk.pixbuf_new_from_file(dist_path + icon_base)
         description = _("Leave it - it's locked, come back - it's back too...")
-        copyright = u"""Copyright (c) 2007,2008 Lars Friedrichs"""
+        copyright = u"""Copyright (c) 2014 Xiang Gao, Secure Systems Group"""
         people = [
-            u"Lars Friedrichs <LarsFriedrichs@gmx.de>",
-            u"Tobias Jakobs",
-            u"Zsolt Mazolt"]
-        translators = """Translators:
-   de Lars Friedrichs <LarsFriedrichs@gmx.de>
-   en Lars Friedrichs <LarsFriedrichs@gmx.de>
-   es César Palma <cesarpalma80@gmail.com>
-   fa Ali Sattari <ali.sattari@gmail.com>
-   hu Kami <kamihir@freemail.hu>
-   it e633 <e633@users.sourceforge.net>
-   Prosper <prosper.nl@gmail.com>
-   ru Alexey Lubimov
-   sv Jan Braunisch <x@r6.se>
-   th Maythee Anegboonlap & pFz <null@llun.info>
-Former translators:
-   fr Claude <f5pbl@users.sourceforge.net>
-   sv Alexander Jönsson <tp-sv@listor.tp-sv.se>
-   sv Daniel Nylander <dnylander@users.sourceforge.net>
-            """
+            u"Xiang Gao <rekygx@gmail.com>",
+            u"Lars Friedrichs <LarsFriedrichs@gmx.de>"
+        ]
         license = _("""
-        BlueProximity is free software; you can redistribute it and/or modify it 
+        BlueProximity-plus is free software; you can redistribute it and/or modify it
         under the terms of the GNU General Public License as published by the 
         Free Software Foundation; either version 2 of the License, or 
         (at your option) any later version.
 
-        BlueProximity is distributed in the hope that it will be useful, but 
+        BlueProximity-plus is distributed in the hope that it will be useful, but
         WITHOUT ANY WARRANTY; without even the implied warranty of 
         MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
         See the GNU General Public License for more details.
 
         You should have received a copy of the GNU General Public License 
-        along with BlueProximity; if not, write to the 
+        along with BlueProximity-plus; if not, write to the
 
         Free Software Foundation, Inc., 
         59 Temple Place, Suite 330, 
@@ -565,15 +549,14 @@ Former translators:
         """)
         about = gtk.AboutDialog()
         about.set_icon(logo)
-        about.set_name("BlueProximity")
+        about.set_name("BlueProximity-plus")
         about.set_version(SW_VERSION)
         about.set_copyright(copyright)
         about.set_comments(description)
         about.set_authors(people)
         about.set_logo(logo)
         about.set_license(license)
-        about.set_website("http://blueproximity.sourceforge.net")
-        about.set_translator_credits(translators)
+        about.set_website("http://goo.gl/jQcY09")
         about.connect('response', lambda widget, response: widget.destroy())
         about.show()
 
@@ -915,9 +898,9 @@ class Bind(object):
     def __init__(self, mac, local_uuid, callback):
         self.mac = mac
         self.port = 7   # port for binding
-        self.chosen_port = 7    # port for use
+        #self.chosen_port = 7    # port for use
         self.service_uuid = "fa87c0d0-afac-11de-8a39-0800200c9a66"  # customized service for binding
-        self.chosen_uuid = "0000111f-0000-1000-8000-00805F9B34FB"  # Handsfree Audio Gateway service
+        #self.chosen_uuid = "0000111f-0000-1000-8000-00805F9B34FB"  # Handsfree Audio Gateway service
         self.local_uuid = local_uuid
         self.bind_uuid = ''
         self.timer = gobject.timeout_add(500, self.run)
@@ -927,16 +910,16 @@ class Bind(object):
 
     def run(self):
         service_matches = bluetooth.find_service(uuid=self.service_uuid, address=self.mac)
-        service_chosen = bluetooth.find_service(uuid=self.chosen_uuid, address=self.mac)
+        #service_chosen = bluetooth.find_service(uuid=self.chosen_uuid, address=self.mac)
         if len(service_matches) == 0:
             print "couldn't find the Server service =("
             sys.exit(0)
         else:
             self.port = int(service_matches[0]['port'])
-            if len(service_chosen) == 0:
-                self.chosen_port = self.port
-            else:
-                self.chosen_port = int(service_chosen[0]['port'])
+            #if len(service_chosen) == 0:
+            #    self.chosen_port = self.port
+            #else:
+            #    self.chosen_port = int(service_chosen[0]['port'])
             print "MAC: %s, PORT: %d" % (self.mac, self.port)
             flag = True
             while flag:
@@ -980,7 +963,7 @@ class Bind(object):
                     self.sock.close()
                     self.connected = False
                     flag = False
-                    self.callback(self.chosen_port, self.bind_uuid)
+                    self.callback(self.port, self.bind_uuid)
 
 
 ## This class does 'all the magic' like regular device detection and decision making
@@ -1060,7 +1043,7 @@ class Proximity (threading.Thread):
             ret_val = -255
         else:
             ret_val = ret_val[0].split(':')[1].strip(' ')
-        return self.filter(int(ret_val))
+        return self.prefilter(int(ret_val))
 
     ## Fire up an rfcomm connection to a certain device on the given channel.
     # Don't forget to set up your phone not to ask for a connection.
@@ -1080,7 +1063,7 @@ class Proximity (threading.Thread):
 
     def prefilter(self, rssi):
         """
-        Eliminates single outlier (below -200)
+        Eliminates single outlier (below -100)
         @param rssi: current scan result rssi
         @return: rssi without jumping outlier
         """
@@ -1088,7 +1071,7 @@ class Proximity (threading.Thread):
             self.last_rssi = rssi
             self.sus_rssi = 0
             return rssi
-        elif rssi < -200 and rssi - self.last_rssi < -150:   # Suspecious value
+        elif rssi < -100 and rssi - self.last_rssi < -100:   # Suspecious value
             if self.sus_rssi == 0:   # No precedence
                 self.sus_rssi = rssi
                 return self.last_rssi
@@ -1246,7 +1229,7 @@ class Proximity (threading.Thread):
                 try:
                     ## Start of Added response handler
                     stt = self.client.getResponseStatus()
-                    print 'Response status - '+ str(stt) + ' Time - ' + str(time.time())
+                    #print 'Response status - '+ str(stt) + ' Time - ' + str(time.time())
                     if stt == 2:    #FP
                         state = _("gone")
                         #proxiCmdCounter = 0
@@ -1338,7 +1321,7 @@ class Proximity (threading.Thread):
                 try:
                     ## Start of Added response handler
                     stt = self.client.getResponseStatus()
-                    print 'Response status - '+ str(stt) + ' Time - ' + str(time.time())
+                    #print 'Response status - '+ str(stt) + ' Time - ' + str(time.time())
                     if stt == 2:    #FP
                         state = _("gone")
                         #proxiCmdCounter = 0

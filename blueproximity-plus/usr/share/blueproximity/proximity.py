@@ -21,7 +21,7 @@ SW_VERSION = '0.1.4'
 APP_NAME="blueproximity-plus"
 
 # Debug mode
-DEBUG = False
+DEBUG = True
 
 ## This value gives us the base directory for language files and icons.
 # Set this value to './' for svn version
@@ -914,8 +914,10 @@ class Bind(object):
 
     def __init__(self, mac, local_uuid, callback):
         self.mac = mac
-        self.port = 1
-        self.service_uuid = "fa87c0d0-afac-11de-8a39-0800200c9a66"
+        self.port = 7   # port for binding
+        self.chosen_port = 7    # port for use
+        self.service_uuid = "fa87c0d0-afac-11de-8a39-0800200c9a66"  # customized service for binding
+        self.chosen_uuid = "0000111f-0000-1000-8000-00805F9B34FB"  # Handsfree Audio Gateway service
         self.local_uuid = local_uuid
         self.bind_uuid = ''
         self.timer = gobject.timeout_add(500, self.run)
@@ -925,11 +927,16 @@ class Bind(object):
 
     def run(self):
         service_matches = bluetooth.find_service(uuid=self.service_uuid, address=self.mac)
+        service_chosen = bluetooth.find_service(uuid=self.chosen_uuid, address=self.mac)
         if len(service_matches) == 0:
             print "couldn't find the Server service =("
             sys.exit(0)
         else:
-            self.port=int(service_matches[0]['port'])
+            self.port = int(service_matches[0]['port'])
+            if len(service_chosen) == 0:
+                self.chosen_port = self.port
+            else:
+                self.chosen_port = int(service_chosen[0]['port'])
             print "MAC: %s, PORT: %d" % (self.mac, self.port)
             flag = True
             while flag:
@@ -941,7 +948,7 @@ class Bind(object):
                     print "Bluetooth error, check your settings"
                     count += 1
                     if count >= 5:
-                        raise SystemExit
+                        sys.exit(0)
                     time.sleep(1)
             print "Paired with %s... at %d" % (self.mac, self.port)
             self.connected = True
@@ -956,11 +963,11 @@ class Bind(object):
                 self.sock.send("ID:"+self.local_uuid)
             except IOError:
                 print "Bind connection broken."
-                if self.connected == True:
+                if self.connected:
                     self.sock = bluetooth.BluetoothSocket( bluetooth.RFCOMM )
                     self.sock.connect((self.mac, self.port))
                     continue
-            data = self.sock.recv(1024)
+            data = self.sock.recv(48)
             if len(data) == 0:
                 continue
             else:
@@ -973,7 +980,7 @@ class Bind(object):
                     self.sock.close()
                     self.connected = False
                     flag = False
-                    self.callback(self.port, self.bind_uuid)
+                    self.callback(self.chosen_port, self.bind_uuid)
 
 
 ## This class does 'all the magic' like regular device detection and decision making

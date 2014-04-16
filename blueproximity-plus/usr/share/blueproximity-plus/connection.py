@@ -12,8 +12,19 @@ from sensor import *
 from dbhelper import *
 from calculate import *
 from log import *
+import subprocess
 
 TAG = 'CONN'
+ADDRESS = '54.229.32.28'
+
+def is_network_on():
+    try:
+        ret = os.system('ping -nq -c 3 -w 5 ' + ADDRESS + ' > /dev/null')
+        return ret==0
+    except:
+        pass
+    return False
+
 
 class Client(threading.Thread):
     def __init__(self, udir, db, db_queue, db_lock, log_queue, log_lock, deviceUuid, sample, dec_queue, dec_lock):
@@ -34,21 +45,39 @@ class Client(threading.Thread):
         self.dec_queue = dec_queue # decision queue
         self.dec_lock = dec_lock # decision lock
         self.running = False
+        self._stop = threading.Event()
 
     def run(self):
         while not self.outqueue:
             time.sleep(1)
-        flag = True
-        while flag:
-            self.log(TAG,'Start Connection')
-            try:
-                self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='54.229.32.28'))
-            except:
-                self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='54.229.32.28'))
+        self.connect()
+
+    def connect(self):
+        print 'Start Connection'
+        self.log(TAG,'Start Connection')
+        try:
+            self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=ADDRESS))
             self.channel = self.connection.channel()
             print 'Connection and Channel ready.'
             self.log(TAG,'Connection & Channel Ready')
+        except:
+            self.wait_for_network()
+        else:
+            self.prepare_queue()
 
+    def wait_for_network(self):
+        print 'Wait for network'
+        self.log(TAG,'Wait for network')
+        flag = True
+        while flag:
+            if is_network_on():
+                flag = False
+                break
+            self._stop.wait(60)
+        self.connect()
+
+    def prepare_queue(self):
+        try:
             self.channel.queue_declare(queue=self.inqueue)  #Queue from Device to Terminal: named with TerminalUUID
             self.channel.queue_declare(queue=self.outqueue) #Queue from Terminal to Device: named with TerminalUUID+'-r'
             print 'Queues declared.'
@@ -59,18 +88,24 @@ class Client(threading.Thread):
             print 'Queues purged.'
             self.log(TAG,'Queues purged')
 
-            self.channel.basic_consume(self.callback,
-                              queue=self.inqueue,
-                              no_ack=True)
+            self.channel.basic_consume(self.callback, queue=self.inqueue, no_ack=True)
+        except:
+            self.connection.close()
+            self.connect()
+        else:
+            self.consume()
+
+    def consume(self):
+        try:
             print 'Start consuming...'
             self.log(TAG,'Start consuming')
-            try:
-                self.running = True
-                self.channel.start_consuming()
-            except:
-                self.running = False
-                #self.channel.stop_consuming()
+            self.running = True
+            self.channel.start_consuming()
+        except:
+            self.running = False
+            #self.channel.stop_consuming()
             self.connection.close()
+            self.connect()
 
     def callback(self, ch, method, properties, body):
         """Callback on reception"""
@@ -98,17 +133,28 @@ class Client(threading.Thread):
     def send(self, msg):
         """Send message with existing channel"""
         if self.running:
-            self.channel.basic_publish(exchange='',
-                        routing_key=self.outqueue,
-                        body=msg)
-            print " [x] Sent %r" % (msg,)
+            try:
+                self.channel.basic_publish(exchange='', routing_key=self.outqueue, body=msg)
+                print " [x] Sent %r" % (msg,)
+            except:
+                self.running = False
+                self.channel.stop_consuming()
+                self.connection.close()
+                self.connect()
+
 
     def purge(self):
         if self.running:
-            print 'Purge queues'
-            self.channel.queue_purge(queue=self.inqueue)    # clear msg in queue
-            self.channel.queue_purge(queue=self.outqueue)
-            self.log(TAG,'Queues purged')
+            try:
+                print 'Purge queues'
+                self.channel.queue_purge(queue=self.inqueue)    # clear msg in queue
+                self.channel.queue_purge(queue=self.outqueue)
+                self.log(TAG,'Queues purged')
+            except:
+                self.running = False
+                self.channel.stop_consuming()
+                self.connection.close()
+                self.connect()
 
     def quit(self):    
         """ Quit thread"""
@@ -188,28 +234,4 @@ class Client(threading.Thread):
 
 
 if __name__ == "__main__":
-    #Logging needed
-    l = Logging()
-    l.start()
-    uuid = get_uuid()
-    sample = Sample()
-    client = Client(l, uuid, sample)
-    client.start()
-    time.sleep(5)
-    client.sendUUID()
-    # Test of sensor/sample:
-    sample.clearSensors()
-    sample.updateTime()
-    client.sendScan(sample.getTime())
-    time.sleep(40)
-    sample.clearSensors()
-    sample.updateTime()
-    client.sendScan(sample.getTime())
-    # Test of response/feedback events:
-    client.sendResult('Y','T', time.time())
-    time.sleep(20)
-    client.sendResult('Y','F', time.time())
-    time.sleep(20)
-    client.sendResult('N','T', time.time())
-    time.sleep(20)
-    #client.sendResult('N','F', time.time())
+    print 'Network available? ' + str(is_network_on())

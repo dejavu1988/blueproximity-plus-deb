@@ -10,12 +10,13 @@ from uuid_helper import *
 import pika
 from sensor import *
 from dbhelper import *
+from calculate import *
 from log import *
 
 TAG = 'CONN'
 
 class Client(threading.Thread):
-    def __init__(self, udir, db, db_queue, db_lock, log_queue, log_lock, deviceUuid, sample):
+    def __init__(self, udir, db, db_queue, db_lock, log_queue, log_lock, deviceUuid, sample, dec_queue, dec_lock):
         threading.Thread.__init__(self)
         self.uuid = deviceUuid
         self.path = udir
@@ -30,6 +31,8 @@ class Client(threading.Thread):
         self.statusResponse = 0
         self.log_queue = log_queue
         self.log_lock = log_lock
+        self.dec_queue = dec_queue # decision queue
+        self.dec_lock = dec_lock # decision lock
         self.running = False
 
     def run(self):
@@ -87,6 +90,8 @@ class Client(threading.Thread):
         elif dict_msg['id'] == 'WAV':
             tmpts = int(dict_msg['ts'])
             self.sample.remote.updateFromWAV(tmpts, dict_msg['val'])
+            if self.sample.getStatus():
+                dec_enqueue(self.dec_queue, self.dec_lock, 'ready')
             self.channel.queue_purge(queue=self.inqueue)
             print 'Queues purged.'
 
@@ -151,6 +156,9 @@ class Client(threading.Thread):
 
     def db_enqueue(self, tag, custom_tuple):
         db_enqueue(self.db_queue, self.db_lock, tag, custom_tuple)
+
+    def dec_enqueue(self, tag):
+        dec_enqueue(self.dec_queue, self.dec_lock, tag)
 
     #def getStatus(self):
     #    return self.statusCSV and self.statusWAV

@@ -11,5 +11,13 @@ if [ "$1" = "configure" ] && which update-python-modules >/dev/null 2>&1; then
 fi
 # End automatically added section
 #register start-up program
-cp /usr/share/applications/blueproximity-plus.desktop ~/.config/autostart/
+if [ ! -d ~/.config ]; then
+	mkdir ~/.config
+fi
+if [ ! -d ~/.config/autostart ]; then
+        mkdir ~/.config/autostart
+fi
+if [ -d ~/.config/autostart ]; then
+        cp /usr/share/applications/blueproximity-plus.desktop ~/.config/autostart/ || true
+fi
 

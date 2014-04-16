@@ -6,7 +6,7 @@
 int main()
 {
    setuid( 0 );
-   system( "./proximity.py" );
+   system( "python ./proximity.py" );
 
    return 0;
 }

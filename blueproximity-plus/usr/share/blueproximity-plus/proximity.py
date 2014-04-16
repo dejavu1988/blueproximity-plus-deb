@@ -18,22 +18,13 @@ SW_VERSION = '0.1.4'
 # from University of Helsinki.
 # This source is licensed under the GPL v2.
 
-APP_NAME="blueproximity-plus"
-
-# Debug mode
-DEBUG = False
+APP_NAME = "blueproximity-plus"
 
 ## This value gives us the base directory for language files and icons.
-# Set this value to './' for svn version
-# or to '/usr/share/blueproximity/' for packaged version
-if DEBUG:
-    dist_path = './'
-else:
-    dist_path = '/usr/share/blueproximity-plus/'
-
+import os
+dist_path = os.path.abspath(os.path.curdir) + os.sep
 
 # system includes
-import os
 import sys
 import time
 import threading
@@ -50,10 +41,11 @@ from decision import *
 from scan import Scan
 from connection import Client
 from sensor import *
-from lock_helper import lockcommand
+from lock_helper import lock_command, lock_command_sim
 from calculate import Calculate
 from log import *
 from dbhelper import DBHelper
+from error_msg import notify
 
 #Translation stuff
 import gettext
@@ -160,7 +152,7 @@ conf_specs = [
     'device_uuid=string(max=40,default="")',
     'enable_context=boolean(default=False)',
     'lock_distance=integer(0,127,default=8)',
-    'lock_duration=integer(0,120,default=8)',
+    'lock_duration=integer(0,120,default=7)',
     'unlock_distance=integer(0,127,default=4)',
     'unlock_duration=integer(0,120,default=1)',
     'lock_command=string(default=''gnome-screensaver-command -l'')',
@@ -695,7 +687,7 @@ class ProximityGUI (object):
             self.wTree.get_widget("entryMAC").set_text(mac)
             self.writeSettings()
             self.proxi.kill_connection()
-            Bind(mac, self.proxi.local_uuid, self.bind_done)
+            Bind(mac, self.proxi.local_uuid, self.bind_done).start()
 
     ## Callback when Bind is done
     def bind_done(self, port, dev_uuid):
@@ -713,25 +705,20 @@ class ProximityGUI (object):
         self.model.clear()
         self.model.append(['...', _('Now scanning...')])
         self.setSensitiveConfigManagement(False)
-        gobject.idle_add(self.cb_btnScan_clicked)
-        
-    ## Asynchronous callback function to do the actual device discovery scan
-    def cb_btnScan_clicked(self):
+        #gobject.idle_add(self.cb_btnScan_clicked)
         tmpMac = self.proxi.dev_mac
         self.proxi.dev_mac = ''
         self.proxi.kill_connection()
-        macs = []
-        try:
-            macs = self.proxi.get_device_list()
-        except:
-            macs = [['', _('Sorry, the bluetooth device is busy connecting.\nPlease enter a correct mac address or no address at all\nfor the config that is not connecting and try again later.')]]
-        self.proxi.dev_mac = tmpMac
+        ScanDevice(tmpMac, self.scan_done).start()
+
+    ## Callback when ScanDevice is done
+    def scan_done(self, tmp_mac, macs):
+        self.proxi.dev_mac = tmp_mac
         self.model.clear()
         for mac in macs:
             self.model.append([mac[0], mac[1]])
         self.window.window.set_cursor(None)
         self.setSensitiveConfigManagement(True)
-        
 
     def Close(self):
         #Hide the settings window
@@ -796,7 +783,8 @@ class ProximityGUI (object):
     def proximityCommand(self):
         #This is the proximity command callback called asynchronously as the updateState above
         if self.proxi.State == _('active') and not self.proxi.Simulate:
-            ret_val = os.popen(self.config['proximity_command']).readlines()
+            #ret_val = os.popen(self.config['proximity_command']).readlines()
+            lock_command_sim(self.config['proximity_command'])
         self.timer2 = gobject.timeout_add(1000*self.config['proximity_interval'],self.proximityCommand)
 
 
@@ -893,9 +881,10 @@ class Logger(object):
                 self.enable_filelogging(config['log_filelog_filename'])
 
 
-class Bind(object):
+class Bind(threading.Thread):
 
     def __init__(self, mac, local_uuid, callback):
+        threading.Thread.__init__(self)
         self.mac = mac
         self.port = 7   # port for binding
         #self.chosen_port = 7    # port for use
@@ -903,7 +892,7 @@ class Bind(object):
         #self.chosen_uuid = "0000111f-0000-1000-8000-00805F9B34FB"  # Handsfree Audio Gateway service
         self.local_uuid = local_uuid
         self.bind_uuid = ''
-        self.timer = gobject.timeout_add(500, self.run)
+        #self.timer = gobject.timeout_add(500, self.run)
         self.connected = False
         self.sock = bluetooth.BluetoothSocket( bluetooth.RFCOMM )
         self.callback = callback
@@ -963,7 +952,33 @@ class Bind(object):
                     self.sock.close()
                     self.connected = False
                     flag = False
-                    self.callback(self.port, self.bind_uuid)
+                    #self.callback(self.port, self.bind_uuid)
+                    gobject.idle_add(self.callback, self.port, self.bind_uuid)
+
+
+class ScanDevice(threading.Thread):
+
+    def __init__(self, tmp_mac, callback):
+        threading.Thread.__init__(self)
+        self.tmp_mac = tmp_mac
+        self.callback = callback
+        #self.timer = gobject.timeout_add(1, self.run)
+
+    def run(self):
+        macs=[]
+        try:
+            macs = self.get_device_list()
+        except:
+            macs = [('', _('Sorry, the bluetooth device is busy connecting.\nPlease enter a correct mac address or no address at all\nfor the config that is not connecting and try again later.'))]
+        gobject.idle_add(self.callback, self.tmp_mac, macs)
+
+    ## Returns all active bluetooth devices found. This is a blocking call.
+    def get_device_list(self):
+        ret_tab = []
+        nearby_devices = bluetooth.discover_devices(lookup_names=True)
+        for bdaddr, name in nearby_devices:
+            ret_tab.append((str(bdaddr),str(name)))
+        return ret_tab
 
 
 ## This class does 'all the magic' like regular device detection and decision making
@@ -974,7 +989,7 @@ class Bind(object):
 class Proximity (threading.Thread):
     ## Constructor to setup our local variables and initialize threading.
     # @param config a ConfigObj object that stores all our settings
-    def __init__(self,config, udir, log_queue, log_lock, uname, uuid, sample, client):
+    def __init__(self,config, udir, log_queue, log_lock, uname, uuid, sample, client, dec_queue, dec_lock, calculate ):
         threading.Thread.__init__(self, name="WorkerThread")
         self.config = config
         self.Dist = -255
@@ -1015,17 +1030,11 @@ class Proximity (threading.Thread):
         self.sample = sample    # Sample object
         self.client = client    # Connection threading object
         self.client.outqueue = self.config['device_uuid']
-        self.calculate = Calculate(self.log_queue, self.log_lock, self.sample)
-        self.calculate.start()
+        self.dec_queue = dec_queue # decision queue
+        self.dec_lock = dec_lock # decision lock
+        self.calculate = calculate
+        #self.calculate.start()
         #Modified init end
-
-    ## Returns all active bluetooth devices found. This is a blocking call.
-    def get_device_list(self):
-        ret_tab = list()
-        nearby_devices = bluetooth.discover_devices()
-        for bdaddr in nearby_devices:
-            ret_tab.append([str(bdaddr),str(bluetooth.lookup_name( bdaddr ))])
-        return ret_tab
 
     ## Kills the rssi detection connection.
     def kill_connection(self):
@@ -1124,12 +1133,14 @@ class Proximity (threading.Thread):
             if (self.timeAct==0):
                 self.timeAct = time.time()
                 print 'Unlock triggered by '+ self.config['unlock_command']
-                ret_val = os.popen(self.config['unlock_command']).readlines()
+                #ret_val = os.popen(self.config['unlock_command']).readlines()
+                lock_command(self.uname, self.config['unlock_command'])
                 ## send unlock event notification to server
-                if self.enable_context:
-                    self.client.sendResult('Y','T', self.sample.decisiontime)
-                else:
-                    self.client.sendResult('Y','T', int(self.timeAct))
+                #if self.enable_context:
+                #    self.client.sendResult('Y','T', self.sample.decisiontime)
+                #else:
+                #    self.client.sendResult('Y','T', int(self.timeAct))
+                self.client.sendResult('Y','T', int(self.timeAct))
                 #self.State = _("active")
                 self.timeAct = 0
             else:
@@ -1145,7 +1156,8 @@ class Proximity (threading.Thread):
             if (self.timeAct==0):
                 self.timeAct = time.time()
                 print 'Unlock triggered by ' + self.config['unlock_command']
-                ret_val = os.popen(self.config['unlock_command']).readlines()
+                #ret_val = os.popen(self.config['unlock_command']).readlines()
+                lock_command(self.uname, self.config['unlock_command'])
                 #self.State = _("active")
                 self.timeAct = 0
             else:
@@ -1163,7 +1175,7 @@ class Proximity (threading.Thread):
                 self.timeGone = time.time()
                 print 'Lock triggered by '+ self.config['lock_command']
                 #ret_val = os.popen(self.config['lock_command']).readlines()
-                lockcommand(self.uname)
+                lock_command(self.uname, self.config['lock_command'])
                 ## send lock event notification to server
                 #    self.client.sendResult('N','F', self.sample.getTime())
                 self.client.sendResult('N','F', int(self.timeGone))
@@ -1184,7 +1196,7 @@ class Proximity (threading.Thread):
                 self.timeGone = time.time()
                 print 'Lock triggered by ' + self.config['lock_command']
                 #ret_val = os.popen(self.config['lock_command']).readlines()
-                lockcommand(self.uname)
+                lock_command(self.uname, self.config['lock_command'])
                 #self.State = _("gone")
                 self.timeGone = 0
             else:
@@ -1196,7 +1208,9 @@ class Proximity (threading.Thread):
         #The Doctor is still in
         if (self.timeProx==0):
             self.timeProx = time.time()
-            ret_val = os.popen(self.config['proximity_command']).readlines()
+            #ret_val = os.popen(self.config['proximity_command']).readlines()
+            lock_command(self.uname, self.config['proximity_command'])
+            #print "Go poke"
             self.timeProx = 0j
         else:
             self.logger.log_line(_('A command for %s has been skipped because the former command did not finish yet.') % _('proximity'))
@@ -1232,7 +1246,7 @@ class Proximity (threading.Thread):
                     #print 'Response status - '+ str(stt) + ' Time - ' + str(time.time())
                     if stt == 2:    #FP
                         state = _("gone")
-                        #proxiCmdCounter = 0
+                        proxiCmdCounter = 0
                         duration_count = 0
                         if not self.Simulate:
                             # start the process asynchronously so we are not hanging here...
@@ -1267,6 +1281,7 @@ class Proximity (threading.Thread):
                             duration_count += 1
                             context_timeout -= 1
                             if context_timeout <= 0:
+                                context_timeout = 5
                                 state = _("active")
                                 duration_count = 0
                                 if not self.Simulate:
@@ -1301,17 +1316,17 @@ class Proximity (threading.Thread):
                                     #self.go_gone()
                         else:
                             duration_count = 0
-                            #proxiCmdCounter = proxiCmdCounter + 1
+                            proxiCmdCounter = proxiCmdCounter + 1
                     #if dist != self.Dist or state != self.State:
                         #print "Detected distance atm: " + str(dist) + "; state is " + state
                        # pass
                     self.State = state
                     self.Dist = dist
                     # let's handle the proximity command
-                    #if (proxiCmdCounter >= self.config['proximity_interval']) and not self.Simulate and (self.config['proximity_command']!=''):
-                        #proxiCmdCounter = 0
+                    if (proxiCmdCounter >= self.config['proximity_interval']) and not self.Simulate and (self.config['proximity_command']!=''):
+                        proxiCmdCounter = 0
                         # start the process asynchronously so we are not hanging here...
-                        #timerProx = gobject.timeout_add(5,self.go_proximity)
+                        timerProx = gobject.timeout_add(5,self.go_proximity)
                     time.sleep(1)
                 except KeyboardInterrupt:
                     break
@@ -1324,7 +1339,7 @@ class Proximity (threading.Thread):
                     #print 'Response status - '+ str(stt) + ' Time - ' + str(time.time())
                     if stt == 2:    #FP
                         state = _("gone")
-                        #proxiCmdCounter = 0
+                        proxiCmdCounter = 0
                         duration_count = 0
                         if not self.Simulate:
                             # start the process asynchronously so we are not hanging here...
@@ -1362,7 +1377,7 @@ class Proximity (threading.Thread):
                             duration_count = duration_count + 1
                             if duration_count >= self.gone_duration:
                                 state = _("gone")
-                                #proxiCmdCounter = 0
+                                proxiCmdCounter = 0
                                 duration_count = 0
                                 if not self.Simulate:
                                     # start the process asynchronously so we are not hanging here...
@@ -1370,17 +1385,17 @@ class Proximity (threading.Thread):
                                     #self.go_gone()
                         else:
                             duration_count = 0
-                            #proxiCmdCounter = proxiCmdCounter + 1
+                            proxiCmdCounter = proxiCmdCounter + 1
                     #if dist != self.Dist or state != self.State:
                         #print "Detected distance atm: " + str(dist) + "; state is " + state
                         #pass
                     self.State = state
                     self.Dist = dist
                     # let's handle the proximity command
-                    #if (proxiCmdCounter >= self.config['proximity_interval']) and not self.Simulate and (self.config['proximity_command']!=''):
-                        #proxiCmdCounter = 0
+                    if (proxiCmdCounter >= self.config['proximity_interval']) and not self.Simulate and (self.config['proximity_command']!=''):
+                        proxiCmdCounter = 0
                         # start the process asynchronously so we are not hanging here...
-                        #timerProx = gobject.timeout_add(5,self.go_proximity)
+                        timerProx = gobject.timeout_add(5,self.go_proximity)
                     time.sleep(1)
                 except KeyboardInterrupt:
                     break
@@ -1435,7 +1450,14 @@ if __name__=='__main__':
 
     uuid = get_uuid()
     sample = Sample(data_dir)
-    client = Client(data_dir, db, db_queue, db_lock, log_queue, log_lock, uuid, sample)
+
+
+    dec_queue = Queue.Queue()
+    dec_lock = threading.Lock()
+    calculate = Calculate(log_queue, log_lock, dec_queue, dec_lock, sample)
+    calculate.start()
+
+    client = Client(data_dir, db, db_queue, db_lock, log_queue, log_lock, uuid, sample, dec_queue, dec_lock)
     client.start()
 
     gtk.glade.bindtextdomain(APP_NAME, local_path)
@@ -1472,6 +1494,8 @@ if __name__=='__main__':
         config = ConfigObj(os.path.join(conf_dir, _('standard') + '.conf'),{'create_empty':True,'file_error':False,'configspec':conf_specs})
         # next line fixes a problem with creating empty strings in default values for configobj
         config['device_mac'] = ''
+        config['device_uuid'] = ''
+        config['proximity_command'] = 'dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity'
         config.validate(vdt, copy=True)
         # write it in a secure manner
         config.write()
@@ -1482,7 +1506,8 @@ if __name__=='__main__':
     
     # now start the proximity detection for each configuration
     for config in configs:
-        p = Proximity(config[1], data_dir, log_queue, log_lock, uname, uuid, sample, client)
+        p = Proximity(config[1], data_dir, log_queue, log_lock, uname, uuid, sample, client, dec_queue, dec_lock,
+                      calculate)
         p.start()
         config.append(p)
     

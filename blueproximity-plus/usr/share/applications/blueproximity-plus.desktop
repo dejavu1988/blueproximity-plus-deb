@@ -5,6 +5,6 @@ Terminal=false
 Name[de_DE]=BlueProximity-plus
 Exec=/usr/bin/blueproximity-plus
 Name=BlueProximity-plus
-Icon=blueproximity
+Icon=blueproximity-plus
 Categories=GNOME;Utility;
 StartupNotify=true

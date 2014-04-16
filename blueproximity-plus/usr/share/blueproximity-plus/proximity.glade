@@ -835,7 +835,8 @@ Must be an open channel, if in doubt please use the scan button.</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="items">gnome-screensaver-command -l
-xscreensaver-command -l</property>
+xscreensaver-command -l
+dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver  org.gnome.ScreenSaver.Lock</property>
                     <signal name="changed" handler="on_settings_changed" swapped="no"/>
                     <child internal-child="entry">
                       <widget class="GtkEntry" id="comboboxentry-entry2">
@@ -860,7 +861,8 @@ xscreensaver-command -l</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="items">gnome-screensaver-command -d
-xscreensaver-command -d</property>
+xscreensaver-command -d
+dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:false</property>
                     <signal name="changed" handler="on_settings_changed" swapped="no"/>
                     <child internal-child="entry">
                       <widget class="GtkEntry" id="comboboxentry-entry4">
@@ -1032,8 +1034,9 @@ user</property>
                   <widget class="GtkComboBoxEntry" id="comboProxi">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="items" translatable="yes">gnome-screensaver-command -p
-xscreensaver-command -p</property>
+                    <property name="items" translatable="yes">dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity
+xscreensaver-command -p
+gnome-screensaver-command -p</property>
                     <signal name="changed" handler="on_settings_changed" swapped="no"/>
                     <child internal-child="entry">
                       <widget class="GtkEntry" id="comboboxentry-entry6">

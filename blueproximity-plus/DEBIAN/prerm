@@ -11,5 +11,7 @@ if which update-python-modules >/dev/null 2>&1; then
 	update-python-modules -c -b blueproximity-plus.dirs
 fi
 # End automatically added section
-rm  ~/.config/autostart/blueproximity-plus.desktop
+if [ -e ~/.config/autostart/blueproximity-plus.desktop ]; then
+	rm  ~/.config/autostart/blueproximity-plus.desktop || true
+fi
 

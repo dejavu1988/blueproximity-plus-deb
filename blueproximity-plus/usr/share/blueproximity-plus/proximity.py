@@ -20,6 +20,10 @@ SW_VERSION = '0.1.4'
 
 APP_NAME = "blueproximity-plus"
 
+# Check if there's already existing instance
+from singleton import check_singleton
+check_singleton()
+
 ## This value gives us the base directory for language files and icons.
 import os
 dist_path = os.path.abspath(os.path.curdir) + os.sep
@@ -46,6 +50,7 @@ from calculate import Calculate
 from log import *
 from dbhelper import DBHelper
 from error_msg import notify
+
 
 #Translation stuff
 import gettext

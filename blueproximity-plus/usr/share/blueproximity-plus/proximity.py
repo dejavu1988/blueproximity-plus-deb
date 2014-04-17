@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # blueproximity ++
-SW_VERSION = '0.1.4'
+SW_VERSION = '0.1.5'
 # Add security to your desktop by automatically locking and unlocking 
 # the screen when you and your phone leave/enter the desk. 
 # Think of a proximity detector for your mobile phone via bluetooth.
@@ -39,6 +39,8 @@ import locale
 
 #Modified imports
 import json
+import hashlib
+import hmac
 import inspect
 from uuid_helper import get_uuid
 from decision import *
@@ -698,7 +700,7 @@ class ProximityGUI (object):
     def bind_done(self, port, dev_uuid):
         self.wTree.get_widget("entryUUID").set_text(dev_uuid)
         self.wTree.get_widget("entryChannel").set_value(port)
-        self.proxi.client.outqueue = dev_uuid
+        self.proxi.client.set_queues(dev_uuid)
         self.writeSettings()
         
     ## Callback that is executed when the scan for devices button is clicked
@@ -897,6 +899,7 @@ class Bind(threading.Thread):
         #self.chosen_uuid = "0000111f-0000-1000-8000-00805F9B34FB"  # Handsfree Audio Gateway service
         self.local_uuid = local_uuid
         self.bind_uuid = ''
+        self.tmp_uuid = ''
         #self.timer = gobject.timeout_add(500, self.run)
         self.connected = False
         self.sock = bluetooth.BluetoothSocket( bluetooth.RFCOMM )
@@ -915,51 +918,76 @@ class Bind(threading.Thread):
             #else:
             #    self.chosen_port = int(service_chosen[0]['port'])
             print "MAC: %s, PORT: %d" % (self.mac, self.port)
-            flag = True
-            while flag:
-                count = 0
-                try:
-                    self.sock.connect((self.mac, self.port))
-                    flag = False
-                except IOError:
-                    print "Bluetooth error, check your settings"
-                    count += 1
-                    if count >= 5:
-                        sys.exit(0)
-                    time.sleep(1)
-            print "Paired with %s... at %d" % (self.mac, self.port)
-            self.connected = True
-            self.exchange_bind()
+            self.connect()
+            if self.connected:  #in case connection successful
+                print "Paired with %s... at %d" % (self.mac, self.port)
+                self.exchange_bind()
+
+    def connect(self):
+        self.connected = False
+        timeout = 3
+        while timeout > 0:
+            try:
+                self.sock.connect((self.mac, self.port))
+                self.connected = True
+                timeout = 0
+                break
+            except IOError:
+                msg = "Bluetooth error, check your Bluetooth settings."
+                print 'Error: ' + msg
+                #if timeout == 4:
+                #    notify(msg)
+                timeout -= 1
+                if timeout == 0:
+                    sys.exit('Error:' + msg)
+                #time.sleep(1)
 
     def exchange_bind(self):
-        flag = True
-        timeout = 0
-        while flag and timeout < 3:
-            timeout += 1
+        timeout = 3
+        while timeout > 0:
+            timeout -= 1
             try:
-                self.sock.send("ID:"+self.local_uuid)
+                tmp_hmac = hmac.new(self.service_uuid, self.local_uuid, hashlib.sha256).hexdigest()
+                self.sock.send("ID:"+self.local_uuid+":"+tmp_hmac+":")
+                timeout = -1
+                break
             except IOError:
                 print "Bind connection broken."
                 if self.connected:
-                    self.sock = bluetooth.BluetoothSocket( bluetooth.RFCOMM )
-                    self.sock.connect((self.mac, self.port))
+                    self.connect()
                     continue
-            data = self.sock.recv(48)
+        while timeout == -1:    #in case sendID is successful
+            try:
+                data = self.sock.recv(128)
+            except IOError:
+                timeout = -2
+                break
             if len(data) == 0:
                 continue
             else:
                 print "bind received [%s]" % data
                 tmp = data.split(':')
-                if tmp[0] == 'ID':
-                    self.bind_uuid = tmp[1]
+                if len(tmp) >= 3 and tmp[0] == 'ID':
+                    tmp_hmac = hmac.new(self.service_uuid, tmp[1], hashlib.sha256).hexdigest()
+                    if tmp[2] == tmp_hmac:
+                        self.tmp_uuid = tmp[1]
+                        self.sock.send("DONE:")
+                    else:
+                        self.sock.send("ERR:")
+                elif tmp[0] == 'ERR':
+                    tmp_hmac = hmac.new(self.service_uuid, self.local_uuid, hashlib.sha256).hexdigest()
+                    self.sock.send("ID:"+self.local_uuid+":"+tmp_hmac+":")
+                elif tmp[0] == 'DONE':
+                    self.bind_uuid = self.tmp_uuid
+                    self.tmp_uuid = ''
                     print "Bound to: " + self.bind_uuid
-                    self.sock.send("DONE:\n")
                     self.sock.close()
                     self.connected = False
-                    flag = False
-                    #self.callback(self.port, self.bind_uuid)
                     gobject.idle_add(self.callback, self.port, self.bind_uuid)
-
+                    break
+        if timeout != -1:
+            msg = "Error: Bind failed"
+            notify(msg)
 
 class ScanDevice(threading.Thread):
 
@@ -1034,7 +1062,7 @@ class Proximity (threading.Thread):
         self.uname = uname  # user login name
         self.sample = sample    # Sample object
         self.client = client    # Connection threading object
-        self.client.outqueue = self.config['device_uuid']
+        self.client.set_queues(self.config['device_uuid'])
         self.dec_queue = dec_queue # decision queue
         self.dec_lock = dec_lock # decision lock
         self.calculate = calculate
@@ -1256,7 +1284,7 @@ class Proximity (threading.Thread):
                         if not self.Simulate:
                             # start the process asynchronously so we are not hanging here...
                             timerGone = gobject.timeout_add(5,self.go_gone_pure)
-                    elif stt == 4:   #FN
+                    elif stt == 4 or stt == 5:   #FN
                         state = _("active")
                         duration_count = 0
                         if not self.Simulate:
@@ -1349,7 +1377,7 @@ class Proximity (threading.Thread):
                         if not self.Simulate:
                             # start the process asynchronously so we are not hanging here...
                             timerGone = gobject.timeout_add(5,self.go_gone_pure)
-                    elif stt == 4:   #FN
+                    elif stt == 4 or stt == 5:   #FN
                         state = _("active")
                         duration_count = 0
                         if not self.Simulate:

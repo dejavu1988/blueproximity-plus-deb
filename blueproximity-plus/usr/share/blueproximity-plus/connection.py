@@ -13,6 +13,8 @@ from dbhelper import *
 from calculate import *
 from log import *
 import subprocess
+import hashlib
+import hmac
 
 TAG = 'CONN'
 ADDRESS = '54.229.32.28'
@@ -30,11 +32,12 @@ class Client(threading.Thread):
     def __init__(self, udir, db, db_queue, db_lock, log_queue, log_lock, deviceUuid, sample, dec_queue, dec_lock):
         threading.Thread.__init__(self)
         self.uuid = deviceUuid
+        self.remote_uuid = ''
         self.path = udir
         self.dbhelper = db
         self.db_queue = db_queue
         self.db_lock = db_lock
-        self.inqueue = deviceUuid
+        self.inqueue = ''
         self.outqueue = ''
         self.connection = None
         self.channel = None
@@ -46,6 +49,15 @@ class Client(threading.Thread):
         self.dec_lock = dec_lock # decision lock
         self.running = False
         self._stop = threading.Event()
+
+    def set_queues(self, remote_uuid):
+        if remote_uuid:
+            self.remote_uuid = remote_uuid
+            self.inqueue = self.get_hmac(self.uuid)
+            self.outqueue = self.get_hmac(self.remote_uuid)
+
+    def get_hmac(self, msg):
+        return hmac.new(self.uuid+self.remote_uuid, msg, hashlib.sha256).hexdigest()
 
     def run(self):
         while not self.outqueue:
@@ -221,7 +233,7 @@ class Client(threading.Thread):
 
     def handleFeedback(self, ts, val):
         """
-        Feedback: TP - 1, FP - 2, TN - 3, FN - 4
+        Feedback: TP - 1, FP - 2, TN - 3, FN - 4 (or 5 if forced triggered by user)
         """
         print 'Response: '+ ts + ':' + val
         self.log(TAG,"Got Response: "+ ts + ':' + val)

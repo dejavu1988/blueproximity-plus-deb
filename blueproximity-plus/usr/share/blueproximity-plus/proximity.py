@@ -45,7 +45,7 @@ import inspect
 from uuid_helper import get_uuid
 from decision import *
 from scan import Scan
-from connection import Client
+from connection import *
 from sensor import *
 from lock_helper import lock_command, lock_command_sim
 from calculate import Calculate
@@ -964,17 +964,17 @@ class Bind(threading.Thread):
             else:
                 print "bind received [%s]" % data
                 tmp = data.split(':')
-                if len(tmp) >= 3 and tmp[0] == 'ID':
+                if len(tmp) >= 3 and equals_ignore_case(tmp[0],'ID'):
                     tmp_hmac = hmac.new(self.service_uuid, tmp[1], hashlib.sha256).hexdigest()
-                    if tmp[2] == tmp_hmac:
+                    if equals_ignore_case(tmp[2], tmp_hmac):
                         self.tmp_uuid = tmp[1]
                         self.sock.send("DONE:")
                     else:
                         self.sock.send("ERR:")
-                elif tmp[0] == 'ERR':
+                elif equals_ignore_case(tmp[0], 'ERR'):
                     tmp_hmac = hmac.new(self.service_uuid, self.local_uuid, hashlib.sha256).hexdigest()
                     self.sock.send("ID:"+self.local_uuid+":"+tmp_hmac+":")
-                elif tmp[0] == 'DONE':
+                elif equals_ignore_case(tmp[0], 'DONE'):
                     self.bind_uuid = self.tmp_uuid
                     self.tmp_uuid = ''
                     print "Bound to: " + self.bind_uuid

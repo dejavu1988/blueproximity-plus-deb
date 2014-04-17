@@ -27,6 +27,11 @@ def is_network_on():
         pass
     return False
 
+def equals_ignore_case(a, b):
+    try:
+         return a.lower() == b.lower()
+    except AttributeError:
+         return a == b
 
 class Client(threading.Thread):
     def __init__(self, udir, db, db_queue, db_lock, log_queue, log_lock, deviceUuid, sample, dec_queue, dec_lock):
@@ -123,37 +128,45 @@ class Client(threading.Thread):
         """Callback on reception"""
         #print " [x] Received %r" % (body,)
 
-        dict_msg = self.parse(body)
-        print 'Received msg['+dict_msg['id']+']'
-        self.log(TAG,'Received msg['+dict_msg['id']+']')
+        received = body.rstrip().split('$')
+        if len(received) >= 2:
+            msg = received[0]
+            msg_hmac = received[1]
+            tmp_hmac = self.get_hmac(msg)
+            if equals_ignore_case(msg_hmac, tmp_hmac):
+                dict_msg = self.parse(msg)
+                print 'Received msg['+dict_msg['id']+']'
+                self.log(TAG,'Received msg['+dict_msg['id']+']')
 
-        if dict_msg['id'] == 'FB':
-            self.handleFeedback(dict_msg['ts'] ,dict_msg['val'])
-        elif dict_msg['id'] == 'CSV':
-            tmpts = int(dict_msg['ts'])
-            tmppath = os.path.join(self.path,str(tmpts))
-            self.sample.remote.updateFromCSV(tmpts, dict_msg['val'])
-            self.sample.remote.exportToCsv(os.path.join(tmppath,'1.csv'))
-        elif dict_msg['id'] == 'WAV':
-            tmpts = int(dict_msg['ts'])
-            self.sample.remote.updateFromWAV(tmpts, dict_msg['val'])
-            if self.sample.getStatus():
-                dec_enqueue(self.dec_queue, self.dec_lock, 'ready')
-            self.channel.queue_purge(queue=self.inqueue)
-            print 'Queues purged.'
+                if dict_msg['id'] == 'FB':
+                    self.handleFeedback(dict_msg['ts'] ,dict_msg['val'])
+                elif dict_msg['id'] == 'CSV':
+                    tmpts = int(dict_msg['ts'])
+                    tmppath = os.path.join(self.path,str(tmpts))
+                    self.sample.remote.updateFromCSV(tmpts, dict_msg['val'])
+                    self.sample.remote.exportToCsv(os.path.join(tmppath,'1.csv'))
+                elif dict_msg['id'] == 'WAV':
+                    tmpts = int(dict_msg['ts'])
+                    self.sample.remote.updateFromWAV(tmpts, dict_msg['val'])
+                    if self.sample.getStatus():
+                        dec_enqueue(self.dec_queue, self.dec_lock, 'ready')
+                    self.channel.queue_purge(queue=self.inqueue)
+                    print 'Queues purged.'
+            else:
+                print 'Received msg hmac not match.'
 
     def send(self, msg):
         """Send message with existing channel"""
         if self.running:
+            signed_msg = msg.rstrip() + "$" + self.get_hmac(msg) + "$\n"
             try:
-                self.channel.basic_publish(exchange='', routing_key=self.outqueue, body=msg)
+                self.channel.basic_publish(exchange='', routing_key=self.outqueue, body=signed_msg)
                 print " [x] Sent %r" % (msg,)
             except:
                 self.running = False
                 self.channel.stop_consuming()
                 self.connection.close()
                 self.connect()
-
 
     def purge(self):
         if self.running:
@@ -184,7 +197,7 @@ class Client(threading.Thread):
         dict_msg = {'id':'ID', 'uid':self.uuid}
         json_msg = json.dumps(dict_msg)
         print "Send UUID: "+json_msg
-        self.send(json_msg+'\n')
+        self.send(json_msg)
         self.log(TAG,'Send UUID: '+json_msg)
 
     def sendScan(self, ts):
@@ -192,7 +205,7 @@ class Client(threading.Thread):
         dict_msg = {'id':'SCAN', 'ts':str(ts)}
         json_msg = json.dumps(dict_msg)
         print "Send SCAN: "+json_msg
-        self.send(json_msg+'\n')
+        self.send(json_msg)
         self.log(TAG,"Send SCAN: "+json_msg)
 
     def sendResult(self, event, decision, timestamp):
@@ -204,7 +217,7 @@ class Client(threading.Thread):
         """
         dict_msg = {'id':'RS', 'event': event, 'val':decision, 'ts':timestamp}
         json_msg = json.dumps(dict_msg)
-        self.send(json_msg+'\n')
+        self.send(json_msg)
         self.log(TAG,"Send Result: "+json_msg)
         tmp_decision = (1 if 'T' in decision else 0)
         self.db_enqueue('INSERT', (timestamp, tmp_decision))

@@ -51,7 +51,6 @@ from lock_helper import lock_command, lock_command_sim
 from calculate import Calculate
 from log import *
 from dbhelper import DBHelper
-from error_msg import notify
 
 
 #Translation stuff
@@ -935,8 +934,6 @@ class Bind(threading.Thread):
             except IOError:
                 msg = "Bluetooth error, check your Bluetooth settings."
                 print 'Error: ' + msg
-                #if timeout == 4:
-                #    notify(msg)
                 timeout -= 1
                 if timeout == 0:
                     sys.exit('Error:' + msg)
@@ -985,9 +982,7 @@ class Bind(threading.Thread):
                     self.connected = False
                     gobject.idle_add(self.callback, self.port, self.bind_uuid)
                     break
-        if timeout != -1:
-            msg = "Error: Bind failed"
-            notify(msg)
+
 
 class ScanDevice(threading.Thread):
 

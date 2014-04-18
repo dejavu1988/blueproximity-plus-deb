@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <glade-interface>
-  <!-- interface-requires gtk+ 2.6 -->
+  <!-- interface-requires gtk+ 2.16 -->
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkWindow" id="MainWindow">
     <property name="can_focus">False</property>
@@ -167,6 +167,7 @@ entries</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">False</property>
+                        <property name="padding">2</property>
                         <property name="position">0</property>
                       </packing>
                     </child>
@@ -190,7 +191,22 @@ entries</property>
                       <packing>
                         <property name="expand">True</property>
                         <property name="fill">True</property>
+                        <property name="padding">2</property>
                         <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label3">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">&lt;i&gt;Click 'Bind' on Android companion before 'Scan for devices' &lt;/i&gt;</property>
+                        <property name="use_markup">True</property>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="padding">2</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                     <child>
@@ -315,7 +331,8 @@ entries</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">False</property>
-                        <property name="position">2</property>
+                        <property name="padding">2</property>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                     <child>
@@ -363,7 +380,7 @@ entries</property>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="padding">2</property>
-                        <property name="position">3</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                     <child>
@@ -412,7 +429,8 @@ Must be an open channel, if in doubt please use the scan button.</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">False</property>
-                        <property name="position">4</property>
+                        <property name="padding">2</property>
+                        <property name="position">5</property>
                       </packing>
                     </child>
                     <child>
@@ -424,6 +442,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
                           <widget class="GtkLabel" id="label2">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="xalign">0.69999998807907104</property>
                             <property name="label" translatable="yes"> Device UUID </property>
                           </widget>
                           <packing>
@@ -454,7 +473,8 @@ Must be an open channel, if in doubt please use the scan button.</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">5</property>
+                        <property name="padding">2</property>
+                        <property name="position">6</property>
                       </packing>
                     </child>
                   </widget>

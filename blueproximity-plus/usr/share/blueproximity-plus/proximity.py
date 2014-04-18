@@ -25,8 +25,8 @@ from singleton import check_singleton
 check_singleton()
 
 ## This value gives us the base directory for language files and icons.
-import os
-dist_path = os.path.abspath(os.path.curdir) + os.sep
+import inspect, os
+dist_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + os.sep
 
 # system includes
 import sys

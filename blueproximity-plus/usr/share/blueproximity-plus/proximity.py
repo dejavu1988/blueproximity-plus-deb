@@ -51,7 +51,7 @@ from lock_helper import lock_command, lock_command_sim
 from calculate import Calculate
 from log import *
 from dbhelper import DBHelper
-
+from conf_visible import set_visible
 
 #Translation stuff
 import gettext
@@ -1249,7 +1249,7 @@ class Proximity (threading.Thread):
         self.sample.clearSensors()
         self.sample.updateTime()
         self.client.sendScan(sample.getTime())
-        sc = Scan(self.path, self.log_queue, log_lock, sample.local)
+        sc = Scan(self.path, self.log_queue, log_lock, sample.local, self.dev_mac)
         sc.start()
         sc.join()
 
@@ -1461,6 +1461,8 @@ if __name__=='__main__':
         os.chmod(log_dir, 0775)
     except OSError:
         pass
+
+    set_visible()
 
     TAG = 'MAIN'
     # Start Logging thread

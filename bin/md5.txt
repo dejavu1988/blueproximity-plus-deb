@@ -17,3 +17,5 @@ bd917f3336dc4686bf4a413cb993a74f  blueproximity-plus-0.1.4.36.deb
 7fe00f9e62e676cd5ea918fb91a1a04d  blueproximity-plus-0.1.5.2.deb
 540b275b84a23c0423933d863d266182  blueproximity-plus-0.1.5.3.deb
 c5241667bfff3e6e51f079bcd99d117e  blueproximity-plus-0.1.5.4.deb
+12565bc33e34a7dd2966c32d93da1c68  blueproximity-plus-0.1.5.5.deb
+75d84d71a967d70323bc954161ca55eb  blueproximity-plus-0.1.5.6.deb

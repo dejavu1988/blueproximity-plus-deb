@@ -15,12 +15,13 @@ if GPS_ENABLED:
 TAG = 'SCAN'
 
 class Scan(threading.Thread):
-    def __init__(self, udir, log_queue, log_lock, sensor):
+    def __init__(self, udir, log_queue, log_lock, sensor, btmac):
         threading.Thread.__init__(self)
         self.path = udir
         self.sensor = sensor
         self.log_queue = log_queue
         self.log_lock = log_lock
+        self.local_mac = btmac
 
     def run(self):
         self.log(TAG,'Scan started')
@@ -32,7 +33,7 @@ class Scan(threading.Thread):
         threads = []
         #gThr = GpsScan(self.log, gpsDict,gpsTsDict,gpsCoordList)
         wThr = WifiScan(self.log_queue, self.log_lock, wifiDict)
-        bThr = BluetoothScan(self.log_queue, self.log_lock, btDict)
+        bThr = BluetoothScan(self.log_queue, self.log_lock, btDict, self.local_mac)
         aThr = AudioScan(self.log_queue, self.log_lock, os.path.join(self.path,str(self.sensor.getTime())))
         #threads.append(gThr)
         threads.append(wThr)

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import struct
@@ -10,7 +12,7 @@ def write_scan_enable(hci_sock, mode):
     opcode = _bt.cmd_opcode_pack(_bt.OGF_HOST_CTL, 
             _bt.OCF_WRITE_SCAN_ENABLE)
     _bt.hci_filter_set_ptype(flt, _bt.HCI_EVENT_PKT)
-    _bt.hci_filter_set_event(flt, _bt.EVT_CMD_COMPLETE);
+    _bt.hci_filter_set_event(flt, _bt.EVT_CMD_COMPLETE)
     _bt.hci_filter_set_opcode(flt, opcode)
     hci_sock.setsockopt( _bt.SOL_HCI, _bt.HCI_FILTER, flt )
 

@@ -15,3 +15,6 @@ def get_uid(uname):
     pw_record = pwd.getpwnam(uname)
     uid = pw_record.pw_uid
     return uid
+
+if __name__ == '__main__':
+    print "UUID: " + str(get_uuid())

@@ -14,7 +14,7 @@ TAG = 'BT'
 
 class BluetoothScan(threading.Thread):
     
-    def __init__(self, log_queue, log_lock, bt_dict):
+    def __init__(self, log_queue, log_lock, bt_dict, local_mac):
         threading.Thread.__init__(self)
         self.btDevices = bt_dict
         self.dev_id = 0
@@ -22,6 +22,9 @@ class BluetoothScan(threading.Thread):
         self.time_init = 0
         self.log_queue = log_queue
         self.log_lock = log_lock
+        self.local_mac = local_mac
+        # Add local BT MAC record with default -40 rssi
+        self.btDevices[local_mac] = [local_mac, -40, 1]
 
     def run(self):
         self.scanning = True

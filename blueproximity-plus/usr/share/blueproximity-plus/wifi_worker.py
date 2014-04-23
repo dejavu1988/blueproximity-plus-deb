@@ -52,7 +52,7 @@ class WifiScan(threading.Thread):
     def scanForWifiNetworks(self):
         #print 'scan triggered'
         output = ""
-        command = ["iwlist", "scanning"]
+        command = ["/sbin/iwlist", "scanning"]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
         #print 'waiting'

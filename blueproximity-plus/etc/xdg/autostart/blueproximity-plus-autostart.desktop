@@ -1,5 +1,5 @@
 [Desktop Entry]
-Exec=blueproximity-plus >> /tmp/blueproximity-plus.log 2>&1
+Exec=blueproximity-plus 2>> /tmp/bp_err.log
 Name=Blueproximity-plus
 Terminal=false
 Type=Application

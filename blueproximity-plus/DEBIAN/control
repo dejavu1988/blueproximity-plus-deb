@@ -3,7 +3,7 @@ Version: 0.1.5
 Section: utils
 Priority: optional
 Architecture: all
-Depends: python (>= 2.5), python-support (>= 0.2), python-scipy (>= 0.8.0), bluez-utils (>= 2.18), python-configobj (>= 4.3.1), python-bluez (>= 0.18), python-gtk2 (>= 2.10), python-glade2 (>= 2.10), python-gobject (>= 2.10), python-pika (>=0.9.5), python-pyaudio (>=0.2.4), iw (>= 3.2)
+Depends: python (>= 2.7.1), bluetooth (>= 4.98), python-support (>= 0.2), python-scipy (>= 0.8.0), bluez-utils (>= 2.18), python-configobj (>= 4.7.0), python-bluez (>= 0.18), python-gtk2 (>= 2.10), python-glade2 (>= 2.10), python-gobject (>= 2.10), python-pika (>=0.9.5), python-pyaudio (>=0.2.4), iw (>= 3.2), librsvg2-common (>= 2.36)
 Recommends: gnome-bluetooth, gnome-screensaver
 Installed-Size: 904
 Maintainer: Xiang Gao <rekygx@gmail.com>

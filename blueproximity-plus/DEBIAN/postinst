@@ -2,22 +2,17 @@
 set -e
 # Automatically added by dh_installdocs
 if [ "$1" = "configure" ] && which install-docs >/dev/null 2>&1; then
-	install-docs -i /usr/share/doc-base/blueproximity-plus
+    install-docs -i /usr/share/doc-base/blueproximity-plus
 fi
 # End automatically added section
 # Automatically added by dh_pysupport
 if [ "$1" = "configure" ] && which update-python-modules >/dev/null 2>&1; then
-	update-python-modules -b blueproximity-plus.dirs
+    update-python-modules -b blueproximity-plus.dirs
 fi
 # End automatically added section
-#register start-up program
-if [ ! -d ~/.config ]; then
-	mkdir ~/.config
+# Automatically added by dh_installmenu
+if [ "$1" = "configure" ] && [ -x "`which update-menus 2>/dev/null`" ]; then
+        update-menus
 fi
-if [ ! -d ~/.config/autostart ]; then
-        mkdir ~/.config/autostart
-fi
-if [ -d ~/.config/autostart ]; then
-        cp /usr/share/applications/blueproximity-plus.desktop ~/.config/autostart/ || true
-fi
+# End automatically added section
 

@@ -1,0 +1,4 @@
+?package(blueproximity-plus):needs="X11" section="Applications/System/Security"\
+  title="Blueproximity-plus" icon="/usr/share/pixmaps/blueproximity-plus.xpm"\
+  longtitle="Blueproximity-plus locks/unlocks your session with a bluetooth device"\
+  command="/usr/bin/blueproximity-plus"

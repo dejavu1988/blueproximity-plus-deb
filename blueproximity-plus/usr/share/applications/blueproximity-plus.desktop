@@ -1,10 +1,9 @@
 [Desktop Entry]
-Version=0.1.4
+Version=0.1.5
 Type=Application
 Terminal=false
-Name[de_DE]=BlueProximity-plus
 Exec=/usr/bin/blueproximity-plus
 Name=BlueProximity-plus
 Icon=blueproximity-plus
-Categories=GNOME;Utility;
-StartupNotify=true
+Categories=Application;Utility;
+StartupNotify=false

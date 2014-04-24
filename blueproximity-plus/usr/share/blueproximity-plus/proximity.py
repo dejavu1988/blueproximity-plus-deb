@@ -225,7 +225,7 @@ class ProximityGUI (object):
         self.window = self.wTree.get_widget("MainWindow")
         if (self.window):
             self.window.connect("delete_event", self.btnClose_clicked)
-        self.window.set_icon(gtk.gdk.pixbuf_new_from_file(dist_path + icon_base))
+            self.window.set_icon(gtk.gdk.pixbuf_new_from_file(dist_path + icon_base))
         self.proxi = configs[0][2]
         self.minDist = -255
         self.maxDist = 0

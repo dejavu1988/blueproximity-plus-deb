@@ -1,0 +1,6 @@
+[Desktop Entry]
+Exec=blueproximity-plus >> /tmp/blueproximity-plus.log 2>&1
+Name=Blueproximity-plus
+Terminal=false
+Type=Application
+StartupNotify=false

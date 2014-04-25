@@ -36,7 +36,7 @@ import Queue
 import signal
 import syslog
 import locale
-
+import stat
 #Modified imports
 import json
 import hashlib
@@ -193,8 +193,20 @@ class ProximityGUI (object):
     # @param configs A list of lists of name, ConfigObj object, proximity object
     # @param show_window_on_start Set to True to show the config screen immediately after the start.
     # This is true if no prior config file has been detected (initial start).
-    def __init__(self,configs,show_window_on_start):
-        
+    def __init__(self,configs,show_window_on_start, p_udir, p_log_queue, p_log_lock, p_uname, p_uuid, p_sample, p_client, p_dec_queue, p_dec_lock, p_calculate):
+
+        # migrated for Proximity
+        self.p_udir = p_udir
+        self.p_log_queue = p_log_queue
+        self.p_log_lock = p_log_lock
+        self.p_uname = p_uname
+        self.p_uuid = p_uuid
+        self.p_sample = p_sample
+        self.p_client = p_client
+        self.p_dec_queue = p_dec_queue
+        self.p_dec_lock = p_dec_lock
+        self.p_calculate = p_calculate
+
         #This is to block events from firing a config write because we initialy set a value
         self.gone_live = False
         
@@ -322,7 +334,7 @@ class ProximityGUI (object):
             dlg.destroy()
             return 0
         # now check if that config already exists
-        newname = os.path.join(os.getenv('HOME'),'.blueproximity',newconfig + ".conf")
+        newname = os.path.join(os.getenv('HOME'),'.blueproximity-plus', 'config', newconfig + ".conf")
         try:
             os.stat(newname)
             dlg = gtk.MessageDialog(None, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, _("A configuration file with the name '%s' already exists.") % newname)
@@ -340,6 +352,7 @@ class ProximityGUI (object):
         self.config.filename = newname
         # save it under the new name
         self.config.write()
+        set_permission(newname)
         # delete the old file
         try:
             os.remove(oldfile)
@@ -368,7 +381,7 @@ class ProximityGUI (object):
             dlg.destroy()
             return 0
         # now check if that config already exists
-        newname = os.path.join(os.getenv('HOME'),'.blueproximity',newconfig + ".conf")
+        newname = os.path.join(os.getenv('HOME'),'.blueproximity-plus','config', newconfig + ".conf")
         try:
             os.stat(newname)
             dlg = gtk.MessageDialog(None, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, _("A configuration file with the name '%s' already exists.") % newname)
@@ -383,8 +396,11 @@ class ProximityGUI (object):
         newconf.filename = newname
         # and save it to the new name
         newconf.write()
+        set_permission(newname)
+        # ok, now stop the detection for that config
+        #self.proxi.Stop = True
         # create the according Proximity object
-        p = Proximity(newconf)
+        p = Proximity(newconf, self.p_udir, self.p_log_queue, self.p_log_lock, self.p_uname, self.p_uuid, self.p_sample, self.p_client, self.p_dec_queue, self.p_dec_lock, self.p_calculate)
         p.Simulate = True
         p.start()
         # fill that into our list of active configs
@@ -738,7 +754,7 @@ class ProximityGUI (object):
         self.icon.set_from_file(dist_path + icon_att)
         for config in configs:
            config[2].logger.log_line(_('stopped.'))
-           config[2].Stop = 1
+           config[2].Stop = True
         time.sleep(2)
         gtk.main_quit()
 
@@ -1303,8 +1319,9 @@ class Proximity (threading.Thread):
                                 pass
                             else:   # decision expired or empty
                                 if int(time.time()) - last_triggered_time > self.trigger_timeout:
-                                    timerAct = gobject.timeout_add(5,self.go_context_scan)  #asynchromous call
-                                    last_triggered_time = int(time.time())
+                                    if not self.Simulate:
+                                        timerAct = gobject.timeout_add(5,self.go_context_scan)  #asynchromous call
+                                        last_triggered_time = int(time.time())
                         if dist >= self.active_limit:
                             duration_count += 1
                             context_timeout -= 1
@@ -1327,8 +1344,9 @@ class Proximity (threading.Thread):
                                             #self.go_active()
                                 else:   # decision expired or empty
                                     if int(time.time()) - last_triggered_time > self.trigger_timeout:
-                                        timerAct = gobject.timeout_add(5,self.go_context_scan)  #asynchromous call
-                                        last_triggered_time = int(time.time())
+                                        if not self.Simulate:
+                                            timerAct = gobject.timeout_add(5,self.go_context_scan)  #asynchromous call
+                                            last_triggered_time = int(time.time())
                         else:
                             duration_count = 0
                     else:
@@ -1428,6 +1446,14 @@ class Proximity (threading.Thread):
                 except KeyboardInterrupt:
                     break
         self.kill_connection()
+
+# Sets the conf file permission to 0664 in case umask blocks 'w' permission
+def set_permission(path):
+    if os.path.isfile(path):
+        st = os.stat(path)
+        mask = 0664
+        if st.st_mode & mask != mask:
+            os.chmod(path, mask)
 
 if __name__=='__main__':
     # User name
@@ -1529,6 +1555,8 @@ if __name__=='__main__':
         config.validate(vdt, copy=True)
         # write it in a secure manner
         config.write()
+        # Enforce conf file permission
+        set_permission(os.path.join(conf_dir, _('standard') + '.conf'))
         configs.append ( [_('standard'), config])
         # we can't log these messages since logging is not yet configured, so we just print it to stdout
         print(_("Creating new configuration."))
@@ -1543,7 +1571,8 @@ if __name__=='__main__':
     
     configs.sort()
     # the idea behind 'configs' is an array containing the name, the configobj and the proximity object
-    pGui = ProximityGUI(configs, new_config)
+    pGui = ProximityGUI(configs, new_config, data_dir, log_queue, log_lock, uname, uuid, sample, client, dec_queue, dec_lock,
+                      calculate)
 
     # make GTK threadable 
     gtk.gdk.threads_init()

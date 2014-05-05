@@ -750,14 +750,17 @@ class ProximityGUI (object):
     def btnPause_clicked(self, widget, data = None):
         if self.pauseMode:
             self.pauseMode = False
-            self.wTree.get_widget("btnPause").set_label("Pause")
+            widget.set_label(gtk.STOCK_MEDIA_PAUSE)
             for config in configs:
                 config[2].dev_mac = config[2].lastMAC
                 config[2].Simulate = False
             self.icon.set_from_file(dist_path + icon_con)
         else:
             self.pauseMode = True
-            self.wTree.get_widget("btnPause").set_label("Resume")
+            widget.set_label(gtk.STOCK_MEDIA_PLAY)
+            customize_label = widget.get_children()[0]
+            customize_label = customize_label.get_children()[0].get_children()[1]
+            customize_label.set_label("Resume")
             for config in configs:
                 config[2].lastMAC = config[2].dev_mac
                 config[2].dev_mac = ''

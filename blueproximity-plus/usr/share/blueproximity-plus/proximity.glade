@@ -154,7 +154,7 @@ entries</property>
                   <widget class="GtkVBox" id="vbox2">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="spacing">1</property>
+                    <property name="spacing">6</property>
                     <child>
                       <widget class="GtkLabel" id="label5">
                         <property name="visible">True</property>
@@ -336,6 +336,20 @@ entries</property>
                       </packing>
                     </child>
                     <child>
+                      <widget class="GtkLabel" id="labelStatus">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">&lt;i&gt;Status: Not bound yet&lt;/i&gt;</property>
+                        <property name="use_markup">True</property>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="padding">2</property>
+                        <property name="position">4</property>
+                      </packing>
+                    </child>
+                    <child>
                       <widget class="GtkHBox" id="hbox7">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -346,52 +360,8 @@ entries</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Device Name</property>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">False</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkEntry" id="entry2">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="invisible_char">•</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
-                          </widget>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </widget>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="padding">2</property>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkHBox" id="hbox5">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="border_width">5</property>
-                        <property name="spacing">12</property>
-                        <child>
-                          <widget class="GtkLabel" id="label6">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">MAC _Address</property>
+                            <property name="label" translatable="yes">_Name</property>
                             <property name="use_underline">True</property>
-                            <property name="mnemonic_widget">entryMAC</property>
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -401,16 +371,16 @@ entries</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkEntry" id="entryMAC">
+                          <widget class="GtkEntry" id="entryName">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="tooltip" translatable="yes" comments="Tooltip">The MAC address of your bluetooth device (e.g. mobile phone or headset) in the format XX:XX:XX:XX:XX:XX</property>
-                            <property name="invisible_char">●</property>
+                            <property name="tooltip" translatable="yes">The name of your bluetooth device.</property>
+                            <property name="invisible_char">•</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
                             <property name="primary_icon_sensitive">True</property>
                             <property name="secondary_icon_sensitive">True</property>
-                            <signal name="focus_out_event" handler="on_settings_changed" swapped="no"/>
+                            <signal name="changed" handler="on_entryName_changed" swapped="no"/>
                           </widget>
                           <packing>
                             <property name="expand">True</property>
@@ -427,18 +397,18 @@ entries</property>
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkHBox" id="hbox6">
+                      <widget class="GtkHBox" id="hbox5">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="border_width">5</property>
                         <property name="spacing">12</property>
                         <child>
-                          <widget class="GtkLabel" id="label26">
+                          <widget class="GtkLabel" id="label6">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">RFCOMM C_hannel</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">_MAC Address</property>
                             <property name="use_underline">True</property>
-                            <property name="mnemonic_widget">entryChannel</property>
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -448,63 +418,11 @@ entries</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkSpinButton" id="entryChannel">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="tooltip" translatable="yes" comments="Tooltip">The rfcomm channel where BlueProximity connects to your device.
-Must be an open channel, if in doubt please use the scan button.</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
-                            <property name="adjustment">1 1 30 1 10 0</property>
-                            <property name="climb_rate">1</property>
-                            <property name="numeric">True</property>
-                            <signal name="value_changed" handler="on_settings_changed_reconnect" swapped="no"/>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </widget>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="padding">2</property>
-                        <property name="position">6</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkHBox" id="hbox10">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="spacing">12</property>
-                        <child>
-                          <widget class="GtkLabel" id="label2">
+                          <widget class="GtkLabel" id="entryMAC">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">0.69999998807907104</property>
-                            <property name="label" translatable="yes"> Device UUID </property>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="padding">2</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkEntry" id="entryUUID">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="editable">False</property>
-                            <property name="invisible_char">•</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
+                            <property name="xalign">0</property>
+                            <property name="use_underline">True</property>
                           </widget>
                           <packing>
                             <property name="expand">True</property>
@@ -517,7 +435,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="padding">2</property>
-                        <property name="position">7</property>
+                        <property name="position">6</property>
                       </packing>
                     </child>
                   </widget>
@@ -528,7 +446,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
               <widget class="GtkLabel" id="labDev">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Bluetooth Device</property>
+                <property name="label" translatable="yes">_Device</property>
                 <property name="use_underline">True</property>
               </widget>
               <packing>
@@ -804,7 +722,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
               <widget class="GtkLabel" id="labSet">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Proximity Details</property>
+                <property name="label" translatable="yes">_Proximity</property>
                 <property name="use_underline">True</property>
               </widget>
               <packing>
@@ -817,8 +735,8 @@ Must be an open channel, if in doubt please use the scan button.</property>
               <widget class="GtkTable" id="table1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="n_rows">7</property>
-                <property name="n_columns">2</property>
+                <property name="border_width">12</property>
+                <property name="n_rows">6</property>
                 <property name="column_spacing">12</property>
                 <property name="row_spacing">6</property>
                 <child>
@@ -826,20 +744,21 @@ Must be an open channel, if in doubt please use the scan button.</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="xalign">0</property>
-                    <property name="label" translatable="yes">&lt;b&gt;Contextual mode&lt;/b&gt;</property>
+                    <property name="label" translatable="yes">&lt;b&gt;Contextual Co-presence Detection&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                     <property name="single_line_mode">True</property>
                   </widget>
                   <packing>
+                    <property name="x_options">GTK_FILL</property>
                     <property name="y_options"></property>
-                    <property name="x_padding">8</property>
-                    <property name="y_padding">8</property>
+                    <property name="y_padding">7</property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkVBox" id="vbox3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="spacing">4</property>
                     <child>
                       <widget class="GtkRadioButton" id="contextButton1">
                         <property name="label" translatable="yes">Enable (default)</property>
@@ -847,9 +766,10 @@ Must be an open channel, if in doubt please use the scan button.</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="use_action_appearance">False</property>
+                        <property name="focus_on_click">False</property>
                         <property name="active">True</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="on_settings_changed" swapped="no"/>
+                        <signal name="toggled" handler="on_contextSetting_changed" swapped="no"/>
                       </widget>
                       <packing>
                         <property name="expand">True</property>
@@ -865,9 +785,10 @@ Must be an open channel, if in doubt please use the scan button.</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="use_action_appearance">False</property>
+                        <property name="focus_on_click">False</property>
                         <property name="draw_indicator">True</property>
                         <property name="group">contextButton1</property>
-                        <signal name="toggled" handler="on_settings_changed" swapped="no"/>
+                        <signal name="toggled" handler="on_contextSetting_changed" swapped="no"/>
                       </widget>
                       <packing>
                         <property name="expand">True</property>
@@ -877,64 +798,61 @@ Must be an open channel, if in doubt please use the scan button.</property>
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkRadioButton" id="contextButton3">
+                      <widget class="GtkHBox" id="hbox6">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">False</property>
-                        <property name="use_action_appearance">False</property>
-                        <property name="active">True</property>
-                        <property name="draw_indicator">True</property>
-                        <property name="group">contextButton1</property>
-                        <signal name="toggled" handler="on_settings_changed" swapped="no"/>
+                        <property name="can_focus">False</property>
                         <child>
-                          <widget class="GtkHBox" id="hbox11">
+                          <widget class="GtkRadioButton" id="contextButton3">
+                            <property name="label" translatable="yes">Disable temporarily for </property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">False</property>
+                            <property name="use_action_appearance">False</property>
+                            <property name="focus_on_click">False</property>
+                            <property name="draw_indicator">True</property>
+                            <property name="group">contextButton1</property>
+                            <signal name="toggled" handler="on_contextSetting_changed" swapped="no"/>
+                          </widget>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkSpinButton" id="timeDisabled">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="invisible_char">•</property>
+                            <property name="invisible_char_set">True</property>
+                            <property name="primary_icon_activatable">False</property>
+                            <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
+                            <property name="adjustment">1 0 100 1 10 0</property>
+                            <property name="climb_rate">1</property>
+                            <property name="numeric">True</property>
+                            <signal name="value_changed" handler="on_contextSetting_changed" swapped="no"/>
+                          </widget>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="padding">2</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label7">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <child>
-                              <widget class="GtkLabel" id="label17">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Disable temporarily for </property>
-                              </widget>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <widget class="GtkSpinButton" id="timeDisabled">
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="invisible_char">•</property>
-                                <property name="primary_icon_activatable">False</property>
-                                <property name="secondary_icon_activatable">False</property>
-                                <property name="primary_icon_sensitive">True</property>
-                                <property name="secondary_icon_sensitive">True</property>
-                                <property name="adjustment">1 0 100 1 10 0</property>
-                                <property name="climb_rate">1</property>
-                                <property name="numeric">True</property>
-                                <signal name="value_changed" handler="on_settings_changed" swapped="no"/>
-                              </widget>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <widget class="GtkLabel" id="label7">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes"> hours</property>
-                              </widget>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">2</property>
-                              </packing>
-                            </child>
+                            <property name="label" translatable="yes"> hours</property>
                           </widget>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="padding">2</property>
+                            <property name="position">2</property>
+                          </packing>
                         </child>
                       </widget>
                       <packing>
@@ -950,10 +868,10 @@ Must be an open channel, if in doubt please use the scan button.</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="use_action_appearance">False</property>
-                        <property name="active">True</property>
+                        <property name="focus_on_click">False</property>
                         <property name="draw_indicator">True</property>
                         <property name="group">contextButton1</property>
-                        <signal name="toggled" handler="on_settings_changed" swapped="no"/>
+                        <signal name="toggled" handler="on_contextSetting_changed" swapped="no"/>
                       </widget>
                       <packing>
                         <property name="expand">True</property>
@@ -963,36 +881,11 @@ Must be an open channel, if in doubt please use the scan button.</property>
                     </child>
                   </widget>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
                     <property name="top_attach">1</property>
                     <property name="bottom_attach">2</property>
                     <property name="y_options"></property>
+                    <property name="x_padding">2</property>
                   </packing>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
                 </child>
                 <child>
                   <placeholder/>
@@ -1016,7 +909,8 @@ Must be an open channel, if in doubt please use the scan button.</property>
               <widget class="GtkLabel" id="labCtx">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Context Setting</property>
+                <property name="label" translatable="yes">_Context</property>
+                <property name="use_underline">True</property>
               </widget>
               <packing>
                 <property name="position">2</property>
@@ -1029,7 +923,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="border_width">12</property>
-                <property name="n_rows">10</property>
+                <property name="n_rows">13</property>
                 <property name="n_columns">2</property>
                 <property name="column_spacing">12</property>
                 <property name="row_spacing">6</property>
@@ -1052,7 +946,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
                     <property name="can_focus">False</property>
                     <property name="xalign">0</property>
                     <property name="xpad">12</property>
-                    <property name="label" translatable="yes">L_ocking command:</property>
+                    <property name="label" translatable="yes">_Locking command:</property>
                     <property name="use_underline">True</property>
                   </widget>
                   <packing>
@@ -1147,31 +1041,14 @@ dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="right_attach">2</property>
-                    <property name="top_attach">9</property>
-                    <property name="bottom_attach">10</property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="labelFile">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">36</property>
-                    <property name="label" translatable="yes">File_name</property>
-                    <property name="use_underline">True</property>
-                    <property name="mnemonic_widget">entryFile</property>
-                  </widget>
-                  <packing>
-                    <property name="top_attach">9</property>
-                    <property name="bottom_attach">10</property>
-                    <property name="x_options">GTK_FILL</property>
+                    <property name="top_attach">7</property>
+                    <property name="bottom_attach">8</property>
                     <property name="y_options"></property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkCheckButton" id="checkFile">
-                    <property name="label" translatable="yes">_File</property>
+                    <property name="label" translatable="yes">_File name</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
@@ -1181,27 +1058,11 @@ dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver
                     <signal name="toggled" handler="on_settings_changed" swapped="no"/>
                   </widget>
                   <packing>
-                    <property name="top_attach">8</property>
-                    <property name="bottom_attach">9</property>
-                    <property name="x_options">GTK_FILL</property>
-                    <property name="y_options"></property>
-                    <property name="x_padding">12</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="labelFacility">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">36</property>
-                    <property name="label" translatable="yes">F_acility</property>
-                    <property name="use_underline">True</property>
-                  </widget>
-                  <packing>
                     <property name="top_attach">7</property>
                     <property name="bottom_attach">8</property>
                     <property name="x_options">GTK_FILL</property>
                     <property name="y_options"></property>
+                    <property name="x_padding">12</property>
                   </packing>
                 </child>
                 <child>
@@ -1222,15 +1083,15 @@ user</property>
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="right_attach">2</property>
-                    <property name="top_attach">7</property>
-                    <property name="bottom_attach">8</property>
+                    <property name="top_attach">6</property>
+                    <property name="bottom_attach">7</property>
                     <property name="x_options">GTK_FILL</property>
                     <property name="y_options">GTK_FILL</property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkCheckButton" id="checkSyslog">
-                    <property name="label" translatable="yes">_Syslog</property>
+                    <property name="label" translatable="yes">_Syslog Facility</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
@@ -1268,7 +1129,7 @@ user</property>
                     <property name="can_focus">False</property>
                     <property name="xalign">0</property>
                     <property name="xpad">12</property>
-                    <property name="label" translatable="yes">Pro_ximity command:</property>
+                    <property name="label" translatable="yes">_Proximity command:</property>
                     <property name="use_underline">True</property>
                   </widget>
                   <packing>
@@ -1310,8 +1171,8 @@ gnome-screensaver-command -p</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="xalign">0</property>
-                    <property name="xpad">24</property>
-                    <property name="label" translatable="yes">Command _interval:
+                    <property name="xpad">20</property>
+                    <property name="label" translatable="yes">_Command interval:
 (sec.)</property>
                     <property name="use_underline">True</property>
                     <property name="mnemonic_widget">hscaleProxi</property>
@@ -1342,7 +1203,135 @@ gnome-screensaver-command -p</property>
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <widget class="GtkLabel" id="label19">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">&lt;b&gt;Bound Device&lt;/b&gt;</property>
+                    <property name="use_markup">True</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">8</property>
+                    <property name="bottom_attach">9</property>
+                    <property name="x_options">GTK_FILL</property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label29">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">12</property>
+                    <property name="label" translatable="yes">_MAC Address:</property>
+                    <property name="use_underline">True</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">10</property>
+                    <property name="bottom_attach">11</property>
+                    <property name="x_options">GTK_FILL</property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label30">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">12</property>
+                    <property name="label" translatable="yes">_RFCOMM channel:</property>
+                    <property name="use_underline">True</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">11</property>
+                    <property name="bottom_attach">12</property>
+                    <property name="x_options">GTK_FILL</property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label31">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">12</property>
+                    <property name="label" translatable="yes">_Device UUID:</property>
+                    <property name="use_underline">True</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">12</property>
+                    <property name="bottom_attach">13</property>
+                    <property name="x_options">GTK_FILL</property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="labelMAC">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">10</property>
+                    <property name="bottom_attach">11</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="labelChannel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">11</property>
+                    <property name="bottom_attach">12</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="labelUUID">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">12</property>
+                    <property name="bottom_attach">13</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">12</property>
+                    <property name="label" translatable="yes">_Name:</property>
+                    <property name="use_underline">True</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">9</property>
+                    <property name="bottom_attach">10</property>
+                    <property name="x_options">GTK_FILL</property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="labelName">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">9</property>
+                    <property name="bottom_attach">10</property>
+                  </packing>
                 </child>
                 <child>
                   <placeholder/>
@@ -1362,7 +1351,7 @@ gnome-screensaver-command -p</property>
               <widget class="GtkLabel" id="labLock">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Locking</property>
+                <property name="label" translatable="yes">_Advanced</property>
                 <property name="use_underline">True</property>
               </widget>
               <packing>
@@ -1382,6 +1371,7 @@ gnome-screensaver-command -p</property>
           <widget class="GtkHBox" id="hbox1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="spacing">10</property>
             <child>
               <widget class="GtkButton" id="btnInfo">
                 <property name="label">gtk-about</property>
@@ -1413,6 +1403,23 @@ gnome-screensaver-command -p</property>
                 <property name="fill">True</property>
                 <property name="pack_type">end</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkButton" id="btnPause">
+                <property name="label">gtk-media-pause</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_btnPause_clicked" swapped="no"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack_type">end</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </widget>

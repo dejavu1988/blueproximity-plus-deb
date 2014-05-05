@@ -153,11 +153,11 @@ except:
 ## Setup config file specs and defaults
 # This is the ConfigObj's syntax
 conf_specs = [
+    'device_name=string(max=40,default="")',
     'device_mac=string(max=17,default="")',
     'device_channel=integer(1,30,default=7)',
     'device_uuid=string(max=40,default="")',
     'context_mode=integer(1,4,default=1)',
-    #'timer_started=string(max=24,default="0")',
     'time_disabled=integer(1,24,default=1)',
     'lock_distance=integer(0,127,default=8)',
     'lock_duration=integer(0,120,default=7)',
@@ -218,6 +218,7 @@ class ProximityGUI (object):
         #Create our dictionary and connect it
         dic = { "on_btnInfo_clicked" : self.aboutPressed,
             "on_btnClose_clicked" : self.btnClose_clicked,
+            "on_btnPause_clicked" : self.btnPause_clicked,
             "on_btnNew_clicked" : self.btnNew_clicked,
             "on_btnDelete_clicked" : self.btnDelete_clicked,
             "on_btnRename_clicked" : self.btnRename_clicked,
@@ -225,8 +226,10 @@ class ProximityGUI (object):
             "on_btnScan_clicked" : self.btnScan_clicked,
             "on_btnSelect_clicked" : self.btnSelect_clicked,
             "on_btnResetMinMax_clicked" : self.btnResetMinMax_clicked,
+            "on_entryName_changed" : self.event_name_changed,
+            "on_contextSetting_changed" : self.event_contextSetting_changed,
             "on_settings_changed" : self.event_settings_changed,
-            "on_settings_changed_reconnect" : self.event_settings_changed_reconnect,
+           # "on_settings_changed_reconnect" : self.event_settings_changed_reconnect,
             "on_btnDlgNewDo_clicked" : self.dlgNewDo_clicked,
             "on_btnDlgNewCancel_clicked" : self.dlgNewCancel_clicked,
             "on_btnDlgRenameDo_clicked" : self.dlgRenameDo_clicked,
@@ -616,9 +619,12 @@ class ProximityGUI (object):
         #Updates the controls to show the actual configuration of the running proximity
         was_live = self.gone_live
         self.gone_live = False
+        self.wTree.get_widget("entryName").set_text(self.config['device_name'])
         self.wTree.get_widget("entryMAC").set_text(self.config['device_mac'])
-        self.wTree.get_widget("entryChannel").set_value(int(self.config['device_channel']))
-        self.wTree.get_widget("entryUUID").set_text(self.config['device_uuid'])
+        self.wTree.get_widget("labelName").set_text(self.config['device_name'])
+        self.wTree.get_widget("labelMAC").set_text(self.config['device_mac'])
+        self.wTree.get_widget("labelChannel").set_text(str(self.config['device_channel']))
+        self.wTree.get_widget("labelUUID").set_text(self.config['device_uuid'])
         for i in range(1,5):
             if int(self.config['context_mode']) == i:
                 self.wTree.get_widget("contextButton"+str(i)).set_active(True)
@@ -643,23 +649,25 @@ class ProximityGUI (object):
         #Updates the running proximity and the config file with the new settings from the controls
         was_live = self.gone_live
         self.gone_live = False
+        self.proxi.dev_name = self.wTree.get_widget("entryName").get_text()
         self.proxi.dev_mac = self.wTree.get_widget("entryMAC").get_text()
-        self.proxi.dev_channel = int(self.wTree.get_widget("entryChannel").get_value())
-        self.proxi.dev_uuid = self.wTree.get_widget("entryUUID").get_text()
-        for i in range(1,5):
-            if self.wTree.get_widget("contextButton"+str(i)).get_active():
-                self.proxi.update_context_setting(i, int(self.wTree.get_widget("timeDisabled").get_value()))
-                break
+        self.proxi.dev_channel = int(self.wTree.get_widget("labelChannel").get_text())
+        self.proxi.dev_uuid = self.wTree.get_widget("labelUUID").get_text()
+       # for i in range(1,5):
+       #     if self.wTree.get_widget("contextButton"+str(i)).get_active():
+       #         self.proxi.update_context_setting(i, int(self.wTree.get_widget("timeDisabled").get_value()))
+       #         break
         #self.proxi.time_disabled = int(self.wTree.get_widget("timeDisabled").get_value())
         self.proxi.gone_limit = -self.wTree.get_widget("hscaleLockDist").get_value()
         self.proxi.gone_duration = self.wTree.get_widget("hscaleLockDur").get_value()
         self.proxi.active_limit = -self.wTree.get_widget("hscaleUnlockDist").get_value()
         self.proxi.active_duration = self.wTree.get_widget("hscaleUnlockDur").get_value()
+        self.config['device_name'] = str(self.proxi.dev_name)
         self.config['device_mac'] = str(self.proxi.dev_mac)
         self.config['device_channel'] = str(self.proxi.dev_channel)
         self.config['device_uuid'] = str(self.proxi.dev_uuid)
-        self.config['context_mode'] = str(self.proxi.context_mode)
-        self.config['time_disabled'] = str(self.proxi.time_disabled)
+        #self.config['context_mode'] = str(self.proxi.context_mode)
+        #self.config['time_disabled'] = str(self.proxi.time_disabled)
         self.config['lock_distance'] = int(-self.proxi.gone_limit)
         self.config['lock_duration'] = int(self.proxi.gone_duration)
         self.config['unlock_distance'] = int(-self.proxi.active_limit)
@@ -680,6 +688,36 @@ class ProximityGUI (object):
     def btnResetMinMax_clicked(self,widget, data = None):
         self.minDist = -255
         self.maxDist = 0
+
+    ## Callback for renaming selected device
+    def event_name_changed(self, widget,data=None):
+        if self.gone_live:
+            was_live = self.gone_live
+            self.gone_live = False
+            self.proxi.dev_name = self.wTree.get_widget("entryName").get_text()
+            self.config['device_name'] = str(self.proxi.dev_name)
+            self.wTree.get_widget("labelName").set_text(self.config['device_name'])
+            self.proxi.logger.configureFromConfig(self.config)
+            self.config.write()
+            self.gone_live = was_live
+        pass
+
+    ## Callback for changing context settings
+    def event_contextSetting_changed(self,widget, data = None):
+        if self.gone_live:
+            was_live = self.gone_live
+            self.gone_live = False
+            widget_name = widget.get_name()
+            if 'contextButton' in widget_name:
+                if widget.get_active():
+                    self.proxi.update_context_setting(int(widget_name[-1]), int(self.wTree.get_widget("timeDisabled").get_value()))
+                    self.config['context_mode'] = widget_name[-1]
+            elif 'timeDisabled' in widget_name:
+                self.proxi.update_context_setting(self.proxi.context_mode, int(widget.get_value()))
+                self.config['time_disabled'] = int(widget.get_value())
+            self.config.write()
+            self.gone_live = was_live
+        pass
 
     ## Callback called by almost all GUI elements if their values are changed.
     # We don't react if we are still initializing (self.gone_live==False)
@@ -708,6 +746,24 @@ class ProximityGUI (object):
         self.Close()
         return 1
 
+    ## Callback to maintain Pause/Resume button action
+    def btnPause_clicked(self, widget, data = None):
+        if self.pauseMode:
+            self.pauseMode = False
+            self.wTree.get_widget("btnPause").set_label("Pause")
+            for config in configs:
+                config[2].dev_mac = config[2].lastMAC
+                config[2].Simulate = False
+            self.icon.set_from_file(dist_path + icon_con)
+        else:
+            self.pauseMode = True
+            self.wTree.get_widget("btnPause").set_label("Resume")
+            for config in configs:
+                config[2].lastMAC = config[2].dev_mac
+                config[2].dev_mac = ''
+                config[2].Simulate = True
+                config[2].kill_connection()
+
     ## Callback called when one clicks on the 'use selected address' button
     # it copies the MAC address of the selected device into the mac address field.
     def btnSelect_clicked(self,widget, data = None):
@@ -716,16 +772,22 @@ class ProximityGUI (object):
         selection.set_mode(gtk.SELECTION_SINGLE)
         model, selection_iter = selection.get_selected()
         if (selection_iter):
+            name = self.model.get_value(selection_iter, 1)
             mac = self.model.get_value(selection_iter, 0)
-            self.wTree.get_widget("entryMAC").set_text(mac)
+            #self.wTree.get_widget("entryMAC").set_text(mac)
             self.writeSettings()
             self.proxi.kill_connection()
-            Bind(mac, self.proxi.local_uuid, self.bind_done).start()
+            Bind(mac, name, self.proxi.local_uuid, self.bind_done).start()
 
     ## Callback when Bind is done
-    def bind_done(self, port, dev_uuid):
-        self.wTree.get_widget("entryUUID").set_text(dev_uuid)
-        self.wTree.get_widget("entryChannel").set_value(port)
+    def bind_done(self, mac, name, port, dev_uuid):
+        self.wTree.get_widget("labelStatus").set_text("Status: bind successfully")
+        self.wTree.get_widget("entryName").set_text(name)
+        self.wTree.get_widget("entryMAC").set_text(mac)
+        self.wTree.get_widget("labelName").set_text(name)
+        self.wTree.get_widget("labelMAC").set_text(mac)
+        self.wTree.get_widget("labelUUID").set_text(dev_uuid)
+        self.wTree.get_widget("labelChannel").set_text(str(port))
         self.proxi.client.set_queues(dev_uuid)
         self.writeSettings()
         
@@ -916,9 +978,10 @@ class Logger(object):
 
 class Bind(threading.Thread):
 
-    def __init__(self, mac, local_uuid, callback):
+    def __init__(self, mac, name, local_uuid, callback):
         threading.Thread.__init__(self)
         self.mac = mac
+        self.name = name
         self.port = 7   # port for binding
         #self.chosen_port = 7    # port for use
         self.service_uuid = "fa87c0d0-afac-11de-8a39-0800200c9a66"  # customized service for binding
@@ -1007,7 +1070,7 @@ class Bind(threading.Thread):
                     print "Bound to: " + self.bind_uuid
                     self.sock.close()
                     self.connected = False
-                    gobject.idle_add(self.callback, self.port, self.bind_uuid)
+                    gobject.idle_add(self.callback, self.mac, self.name, self.port, self.bind_uuid)
                     break
 
 
@@ -1053,6 +1116,7 @@ class Proximity (threading.Thread):
         self.Stop = False
         self.procid = 0
         self.local_uuid = uuid  # Local UUID
+        self.dev_name = self.config['device_name']
         self.dev_mac = self.config['device_mac']
         self.dev_channel = self.config['device_channel']
         self.dev_uuid = self.config['device_uuid']  # Remote device UUID
@@ -1356,7 +1420,7 @@ class Proximity (threading.Thread):
                     else:
                         dist = -255
                         self.ErrorMsg = "No bluetooth device configured..."
-                    print 'Dist: ' + str(dist) + " State: " + state
+                    print 'Dist: ' + str(dist) + " State: " + state + " Simulate: " + str(self.Simulate)
                     if state == _("gone"):  #state: gone
                         ##  modified algo of trigger
                         if dist >= 2 * self.active_limit:   #inside 2*range of trigger scanning
@@ -1451,7 +1515,7 @@ class Proximity (threading.Thread):
                     else:
                         dist = -255
                         self.ErrorMsg = "No bluetooth device configured..."
-                    print 'Dist: ' + str(dist) + " State: " + state
+                    print 'Dist: ' + str(dist) + " State: " + state + " Simulate: " + str(self.Simulate)
                     if state == _("gone"):
                         if dist>=self.active_limit:
                             duration_count = duration_count + 1

@@ -157,7 +157,7 @@ conf_specs = [
     'device_channel=integer(1,30,default=7)',
     'device_uuid=string(max=40,default="")',
     'context_mode=integer(1,4,default=1)',
-    #'timer_started=string(max=24,default="")',
+    #'timer_started=string(max=24,default="0")',
     'time_disabled=integer(1,24,default=1)',
     'lock_distance=integer(0,127,default=8)',
     'lock_duration=integer(0,120,default=7)',
@@ -227,10 +227,6 @@ class ProximityGUI (object):
             "on_btnResetMinMax_clicked" : self.btnResetMinMax_clicked,
             "on_settings_changed" : self.event_settings_changed,
             "on_settings_changed_reconnect" : self.event_settings_changed_reconnect,
-            "on_contextButton1_toggled" : self.event_contextButton1_toggled,
-            "on_contextButton2_toggled" : self.event_contextButton1_toggled,
-            "on_contextButton3_toggled" : self.event_contextButton1_toggled,
-            "on_contextButton4_toggled" : self.event_contextButton1_toggled,
             "on_btnDlgNewDo_clicked" : self.dlgNewDo_clicked,
             "on_btnDlgNewCancel_clicked" : self.dlgNewCancel_clicked,
             "on_btnDlgRenameDo_clicked" : self.dlgRenameDo_clicked,
@@ -623,17 +619,11 @@ class ProximityGUI (object):
         self.wTree.get_widget("entryMAC").set_text(self.config['device_mac'])
         self.wTree.get_widget("entryChannel").set_value(int(self.config['device_channel']))
         self.wTree.get_widget("entryUUID").set_text(self.config['device_uuid'])
-        tmp_mode = 1
         for i in range(1,5):
             if int(self.config['context_mode']) == i:
                 self.wTree.get_widget("contextButton"+str(i)).set_active(True)
-                tmp_mode = i
                 break
-        if tmp_mode == 3:
-        #    if int(time.time()) > int(self.config['timer_started']) + int(self.config['time_disabled']) * 3600:
-                pass
         self.wTree.get_widget("timeDisabled").set_value(int(self.config['time_disabled']))
-
         self.wTree.get_widget("hscaleLockDist").set_value(int(self.config['lock_distance']))
         self.wTree.get_widget("hscaleLockDur").set_value(int(self.config['lock_duration']))
         self.wTree.get_widget("hscaleUnlockDist").set_value(int(self.config['unlock_distance']))
@@ -658,9 +648,9 @@ class ProximityGUI (object):
         self.proxi.dev_uuid = self.wTree.get_widget("entryUUID").get_text()
         for i in range(1,5):
             if self.wTree.get_widget("contextButton"+str(i)).get_active():
-                self.proxi.context_mode = i
+                self.proxi.update_context_setting(i, int(self.wTree.get_widget("timeDisabled").get_value()))
                 break
-        self.proxi.time_disabled = int(self.wTree.get_widget("timeDisabled").get_value())
+        #self.proxi.time_disabled = int(self.wTree.get_widget("timeDisabled").get_value())
         self.proxi.gone_limit = -self.wTree.get_widget("hscaleLockDist").get_value()
         self.proxi.gone_duration = self.wTree.get_widget("hscaleLockDur").get_value()
         self.proxi.active_limit = -self.wTree.get_widget("hscaleUnlockDist").get_value()
@@ -712,25 +702,6 @@ class ProximityGUI (object):
             self.writeSettings()
         pass
 
-    def event_contextButton1_toggled(self,widget,data=None):
-        if self.gone_live:
-            pass
-        pass
-
-    def event_contextButton2_toggled(self,widget,data=None):
-        if self.gone_live:
-            pass
-        pass
-
-    def event_contextButton3_toggled(self,widget,data=None):
-        if self.gone_live:
-            pass
-        pass
-
-    def event_contextButton4_toggled(self,widget,data=None):
-        if self.gone_live:
-            pass
-        pass
 
     ## Callback to just close and not destroy the main window 
     def btnClose_clicked(self,widget, data = None):
@@ -1085,11 +1056,14 @@ class Proximity (threading.Thread):
         self.dev_mac = self.config['device_mac']
         self.dev_channel = self.config['device_channel']
         self.dev_uuid = self.config['device_uuid']  # Remote device UUID
-        self.context_mode = self.config['context_mode'] # context mode: 1-4
-        self.time_disabled = self.config['time_disabled'] # fixed setting value used for context mode 3
-        self.timer_started = 0 #int(self.config['timer_started'])  # the timestamp (in sec) to start disabling timer
+        # Context start
+        self.context_mode = 0 # self.config['context_mode'] # context mode: 1-4
+        self.time_disabled = 0 # self.config['time_disabled'] # fixed setting value used for context mode 3
+        self.timer_started = 0  # the timestamp (in sec) to start disabling timer
         self.enable_context = True # Switching between w/ or w/o contextual scan
-        self.init_context_mode()
+        self.auto_recovery = True
+        self.update_context_setting(self.config['context_mode'], self.config['time_disabled'])
+        # Context end
         self.ringbuffer_size = self.config['buffer_size']
         self.ringbuffer = [-254] * self.ringbuffer_size
         self.ringbuffer_pos = 0
@@ -1122,23 +1096,35 @@ class Proximity (threading.Thread):
         self.dec_lock = dec_lock # decision lock
         self.calculate = calculate
         #self.calculate.start()
-        self.init_context_mode()
         #Modified init end
 
-    def init_context_mode(self):
-        #self.context_mode = self.config['context_mode']
-        #self.time_disabled = self.config['time_disabled']
-        if self.context_mode == 1:
-            self.enable_context = True
-        elif self.context_mode == 2:
-            self.enable_context = False
-        elif self.context_mode == 3:
-            if int(time.time()) >= self.timer_started + self.time_disabled * 3600:
+    ## Updates context variables upon context_mode or time_disabled updated
+    def update_context_setting(self, mode=1, time_disabled=1):
+        if self.context_mode == mode:   # no changes in context mode
+            if self.time_disabled != time_disabled:
+                self.time_disabled = time_disabled
+                if mode == 3:
+                    self.timer_started = int(time.time())
+                    self.enable_context = False
+                    self.auto_recovery = False
+        else:   # mode changed
+            self.context_mode = mode
+            if mode == 1:
                 self.enable_context = True
-            else:
+                self.auto_recovery = True
+            elif mode == 2:
                 self.enable_context = False
-        elif self.context_mode == 4:
-            self.enable_context = False
+                self.auto_recovery = True
+            elif mode == 3:
+                if self.time_disabled != time_disabled:
+                    self.time_disabled = time_disabled
+                self.timer_started = int(time.time())
+                self.enable_context = False
+                self.auto_recovery = False
+            elif self.context_mode == 4:
+                self.enable_context = False
+                self.auto_recovery = False
+        print "Context var update:", self.context_mode, self.time_disabled, self.timer_started, self.enable_context, self.auto_recovery
 
     ## Kills the rssi detection connection.
     def kill_connection(self):

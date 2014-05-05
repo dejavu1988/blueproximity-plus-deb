@@ -849,7 +849,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
                         <property name="use_action_appearance">False</property>
                         <property name="active">True</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="on_contextButton1_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_settings_changed" swapped="no"/>
                       </widget>
                       <packing>
                         <property name="expand">True</property>
@@ -867,7 +867,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
                         <property name="use_action_appearance">False</property>
                         <property name="draw_indicator">True</property>
                         <property name="group">contextButton1</property>
-                        <signal name="toggled" handler="on_contextButton2_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_settings_changed" swapped="no"/>
                       </widget>
                       <packing>
                         <property name="expand">True</property>
@@ -885,7 +885,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
                         <property name="active">True</property>
                         <property name="draw_indicator">True</property>
                         <property name="group">contextButton1</property>
-                        <signal name="toggled" handler="on_contextButton3_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_settings_changed" swapped="no"/>
                         <child>
                           <widget class="GtkHBox" id="hbox11">
                             <property name="visible">True</property>
@@ -953,7 +953,7 @@ Must be an open channel, if in doubt please use the scan button.</property>
                         <property name="active">True</property>
                         <property name="draw_indicator">True</property>
                         <property name="group">contextButton1</property>
-                        <signal name="toggled" handler="on_contextButton4_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_settings_changed" swapped="no"/>
                       </widget>
                       <packing>
                         <property name="expand">True</property>

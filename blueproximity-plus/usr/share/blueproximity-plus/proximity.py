@@ -619,6 +619,12 @@ class ProximityGUI (object):
         #Updates the controls to show the actual configuration of the running proximity
         was_live = self.gone_live
         self.gone_live = False
+        if self.config['device_mac'] != '':
+            self.wTree.get_widget("labelStatus").set_use_markup(True)
+            self.wTree.get_widget("labelStatus").set_label("<i>Status: bound</i>")
+        else:
+            self.wTree.get_widget("labelStatus").set_use_markup(True)
+            self.wTree.get_widget("labelStatus").set_label("<i>Status: not bound</i>")
         self.wTree.get_widget("entryName").set_text(self.config['device_name'])
         self.wTree.get_widget("entryMAC").set_text(self.config['device_mac'])
         self.wTree.get_widget("labelName").set_text(self.config['device_name'])
@@ -784,7 +790,8 @@ class ProximityGUI (object):
 
     ## Callback when Bind is done
     def bind_done(self, mac, name, port, dev_uuid):
-        self.wTree.get_widget("labelStatus").set_text("Status: bind successfully")
+        self.wTree.get_widget("labelStatus").set_use_markup(True)
+        self.wTree.get_widget("labelStatus").set_label("<i>Status: bind successfully</i>")
         self.wTree.get_widget("entryName").set_text(name)
         self.wTree.get_widget("entryMAC").set_text(mac)
         self.wTree.get_widget("labelName").set_text(name)

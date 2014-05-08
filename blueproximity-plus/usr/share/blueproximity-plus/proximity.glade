@@ -722,7 +722,7 @@ entries</property>
               <widget class="GtkLabel" id="labSet">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Proximity</property>
+                <property name="label" translatable="yes">_RSSI Setting</property>
                 <property name="use_underline">True</property>
               </widget>
               <packing>
@@ -909,7 +909,7 @@ entries</property>
               <widget class="GtkLabel" id="labCtx">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Context</property>
+                <property name="label" translatable="yes">_Context Setting</property>
                 <property name="use_underline">True</property>
               </widget>
               <packing>

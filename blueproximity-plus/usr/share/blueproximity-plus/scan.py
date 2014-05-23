@@ -15,9 +15,10 @@ if GPS_ENABLED:
 TAG = 'SCAN'
 
 class Scan(threading.Thread):
-    def __init__(self, udir, log_queue, log_lock, sensor, btmac):
+    def __init__(self, udir, mask, log_queue, log_lock, sensor, btmac):
         threading.Thread.__init__(self)
         self.path = udir
+        self.mask = mask
         self.sensor = sensor
         self.log_queue = log_queue
         self.log_lock = log_lock
@@ -25,20 +26,25 @@ class Scan(threading.Thread):
 
     def run(self):
         self.log(TAG,'Scan started')
+        print 'Local Scan started'
         gpsDict = {}
         gpsTsDict = {}
         gpsCoordList = []
         wifiDict = {}
         btDict = {}
         threads = []
-        #gThr = GpsScan(self.log, gpsDict,gpsTsDict,gpsCoordList)
-        wThr = WifiScan(self.log_queue, self.log_lock, wifiDict)
-        bThr = BluetoothScan(self.log_queue, self.log_lock, btDict, self.local_mac)
-        aThr = AudioScan(self.log_queue, self.log_lock, os.path.join(self.path,str(self.sensor.getTime())))
-        #threads.append(gThr)
-        threads.append(wThr)
-        threads.append(bThr)
-        threads.append(aThr)
+        if self.mask & 1 == 1:
+            aThr = AudioScan(self.log_queue, self.log_lock, os.path.join(self.path,str(self.sensor.getTime())))
+            threads.append(aThr)
+        if self.mask & 2 == 2:
+            wThr = WifiScan(self.log_queue, self.log_lock, wifiDict)
+            threads.append(wThr)
+        if self.mask & 4 == 4:
+            bThr = BluetoothScan(self.log_queue, self.log_lock, btDict, self.local_mac)
+            threads.append(bThr)
+        #if self.mask & 8 == 8:
+            #gThr = GpsScan(self.log, gpsDict,gpsTsDict,gpsCoordList)
+            #threads.append(gThr)
         self.log(TAG,'Scan thread pool initialized')
         for t in threads:
             t.start()
@@ -47,6 +53,7 @@ class Scan(threading.Thread):
         self.log(TAG,'Scan thread pool done')
         #exportToCsv('tmp.csv',wifiDict,btDict,gpsDict,gpsTsDict,gpsCoordList)
         commitToObjects(self.path, self.sensor,wifiDict,btDict,gpsDict,gpsTsDict,gpsCoordList)
+        print 'Local Scan done'
 
     def log(self, tag, msg):
         log(self.log_queue, self.log_lock, tag, msg)

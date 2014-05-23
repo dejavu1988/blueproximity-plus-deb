@@ -28,6 +28,9 @@ check_singleton()
 import inspect, os
 dist_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + os.sep
 
+# Global var: sensor_mask: sensor mode enabled: bitwise mask
+sensor_mask = 0
+
 # system includes
 import sys
 import time
@@ -158,6 +161,7 @@ conf_specs = [
     'device_channel=integer(1,30,default=7)',
     'device_uuid=string(max=40,default="")',
     'context_mode=integer(1,4,default=1)',
+    'sensor_mode=integer(0,15,default=0)',
     'time_disabled=integer(1,24,default=1)',
     'lock_distance=integer(0,127,default=7)',
     'lock_duration=integer(0,120,default=6)',
@@ -228,6 +232,7 @@ class ProximityGUI (object):
             "on_btnResetMinMax_clicked" : self.btnResetMinMax_clicked,
             "on_entryName_changed" : self.event_name_changed,
             "on_contextSetting_changed" : self.event_contextSetting_changed,
+            "on_sensorSetting_changed" : self.event_sensorSetting_changed,
             "on_settings_changed" : self.event_settings_changed,
            # "on_settings_changed_reconnect" : self.event_settings_changed_reconnect,
             "on_btnDlgNewDo_clicked" : self.dlgNewDo_clicked,
@@ -635,6 +640,12 @@ class ProximityGUI (object):
             if int(self.config['context_mode']) == i:
                 self.wTree.get_widget("contextButton"+str(i)).set_active(True)
                 break
+        sm = int(self.config['sensor_mode'])
+        for i in [1,2,4]:
+            if sm & i != 0:
+                self.wTree.get_widget("sensorCheck"+str(i)).set_active(True)
+            else:
+                self.wTree.get_widget("sensorCheck"+str(i)).set_active(False)
         self.wTree.get_widget("timeDisabled").set_value(int(self.config['time_disabled']))
         self.wTree.get_widget("hscaleLockDist").set_value(int(self.config['lock_distance']))
         self.wTree.get_widget("hscaleLockDur").set_value(int(self.config['lock_duration']))
@@ -721,6 +732,24 @@ class ProximityGUI (object):
             elif 'timeDisabled' in widget_name:
                 self.proxi.update_context_setting(self.proxi.context_mode, int(widget.get_value()))
                 self.config['time_disabled'] = int(widget.get_value())
+            self.config.write()
+            self.gone_live = was_live
+        pass
+
+    ## Callback for changing sensor settings
+    def event_sensorSetting_changed(self,widget, data = None):
+        if self.gone_live:
+            was_live = self.gone_live
+            self.gone_live = False
+            widget_name = widget.get_name()
+            if 'sensorCheck' in widget_name:
+                global sensor_mask
+                if widget.get_active():
+                    sensor_mask = sensor_mask | int(widget_name[-1])
+                else:
+                    sensor_mask = sensor_mask & (~int(widget_name[-1]))
+                print 'Sensor mask updated: ' + str(sensor_mask)
+                self.config['sensor_mode'] = int(sensor_mask)
             self.config.write()
             self.gone_live = was_live
         pass
@@ -1384,8 +1413,8 @@ class Proximity (threading.Thread):
     def go_context_scan(self):
         self.sample.clearSensors()
         self.sample.updateTime()
-        self.client.sendScan(sample.getTime())
-        sc = Scan(self.path, self.log_queue, log_lock, sample.local, self.dev_mac)
+        self.client.sendScan(sample.getTime(), sensor_mask)
+        sc = Scan(self.path, sensor_mask, self.log_queue, log_lock, sample.local, self.dev_mac)
         sc.start()
         sc.join()
 

@@ -145,9 +145,11 @@ class Client(threading.Thread):
                     tmppath = os.path.join(self.path,str(tmpts))
                     self.sample.remote.updateFromCSV(tmpts, dict_msg['val'])
                     self.sample.remote.exportToCsv(os.path.join(tmppath,'1.csv'))
+                    print 'Remote Csv ready'
                 elif dict_msg['id'] == 'WAV':
                     tmpts = int(dict_msg['ts'])
                     self.sample.remote.updateFromWAV(tmpts, dict_msg['val'])
+                    print 'Remote Wav ready'
                     if self.sample.getStatus():
                         dec_enqueue(self.dec_queue, self.dec_lock, 'ready')
                     self.channel.queue_purge(queue=self.inqueue)
@@ -200,9 +202,9 @@ class Client(threading.Thread):
         self.send(json_msg)
         self.log(TAG,'Send UUID: '+json_msg)
 
-    def sendScan(self, ts):
+    def sendScan(self, ts, mask):
         """ Send SCAN msg to device-side"""
-        dict_msg = {'id':'SCAN', 'ts':str(ts)}
+        dict_msg = {'id':'SCAN', 'ts':str(ts), 'mask':str(mask)}
         json_msg = json.dumps(dict_msg)
         print "Send SCAN: "+json_msg
         self.send(json_msg)

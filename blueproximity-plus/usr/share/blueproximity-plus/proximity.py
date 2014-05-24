@@ -50,7 +50,7 @@ from decision import *
 from scan import Scan
 from connection import *
 from sensor import *
-from lock_helper import lock_command, lock_command_sim
+from lock_helper import *
 from calculate import Calculate
 from log import *
 from dbhelper import DBHelper
@@ -1245,7 +1245,7 @@ class Proximity (threading.Thread):
             ret_val = -255
         else:
             ret_val = ret_val[0].split(':')[1].strip(' ')
-        return self.prefilter(int(ret_val))
+        return self.filter(int(ret_val)), int(ret_val) #return filtered and raw rssi
 
     ## Fire up an rfcomm connection to a certain device on the given channel.
     # Don't forget to set up your phone not to ask for a connection.
@@ -1293,25 +1293,29 @@ class Proximity (threading.Thread):
         @param val: raw rssi value
         @return: filtered rssi value
         """
-        val = self.prefilter(rssi)
+        val = self.prefilter(rssi) #Note: prefilter already incorporated
         WINDOW = 5  # Window size
+        res = 0.0
         if len(self.buf) < WINDOW:  # Returns average when buffer is not full
             self.buf.append(val)
-            return sum(self.buf)/float(len(self.buf))
+            res = sum(self.buf)/float(len(self.buf))
         else:   # Returns moving average when buffer is full
             self.buf.pop(0)
             self.buf.append(val)
-            return sum(self.buf)/float(WINDOW)
+            res = sum(self.buf)/float(WINDOW)
+        #print 'Max of ' , str(res) , str(val) , ' RSSI ' , str(rssi) , ' buf ' , self.buf
+        return max(res, val)
 
 
     def run_cycle(self,dev_mac,dev_channel):
         # reads the distance and averages it over the ringbuffer
         self.ringbuffer_pos = (self.ringbuffer_pos + 1) % self.ringbuffer_size
-        self.ringbuffer[self.ringbuffer_pos] = self.get_proximity_once(dev_mac)
+        self.ringbuffer[self.ringbuffer_pos], conn_flag = self.get_proximity_once(dev_mac)
         ret_val = 0
         for val in self.ringbuffer:
             ret_val = ret_val + val
-        if self.ringbuffer[self.ringbuffer_pos] == -255:
+        #if self.ringbuffer[self.ringbuffer_pos] == -255:
+        if conn_flag == -255:
             self.ErrorMsg = _("No connection found, trying to establish one...")
             self.kill_connection()
             self.get_connection(dev_mac,dev_channel)
@@ -1424,13 +1428,21 @@ class Proximity (threading.Thread):
     def run(self):
         duration_count = 0
         context_timeout = 5
-        state = _("gone")
+        #state = _("gone")
+        if state_command(self.uname):
+            state = _("gone")
+        else:
+            state = _("active")
         proxiCmdCounter = 0
         last_triggered_time = 0
         while not self.dev_uuid:
             time.sleep(1)
         time.sleep(self.delay_start)
         while not self.Stop:
+            if state_command(self.uname):
+                state = _("gone")
+            else:
+                state = _("active")
             if self.enable_context:    # when context module is used
                 #print "tick"
                 try:

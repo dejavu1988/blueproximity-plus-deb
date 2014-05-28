@@ -34,8 +34,9 @@ class Calculate(threading.Thread):
                     #if self.sample.getStatus() and (self.sample.decisiontime < self.sample.time):
                     #    self.log(TAG,'New Calculation')
                     #    self.sample.calculateDecision()
+                    time.sleep(5)
                     path_wav0 = os.path.join(self.data_dir, tstag, '0.wav')
-                    path_wav1 = os.path.join(self.data_dir, tstag, '0.wav')
+                    path_wav1 = os.path.join(self.data_dir, tstag, '1.wav')
                     self.audio_result_maxCorr, self.audio_result_diff = getXCorrandDistFromWav(path_wav0, path_wav1)
                     self.queue.task_done()
                     print "Decision calculated."

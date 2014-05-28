@@ -1488,12 +1488,14 @@ class Proximity (threading.Thread):
                             context_timeout -= 1
                             if context_timeout <= 0:
                                 context_timeout = 10
-                                #state = _("active")
-                                #duration_count = 0
-                                #if not self.Simulate:
-                                #    # start the process asynchronously so we are not hanging here...
-                                #    timerAct = gobject.timeout_add(5,self.go_active)
-                                #    #self.go_active()
+                                if sensor_mask & 2 == 2:
+                                    state = _("active")
+                                    duration_count = 0
+                                    self.calculate.reset_audio_result()
+                                    if not self.Simulate:
+                                        # start the process asynchronously so we are not hanging here...
+                                        timerAct = gobject.timeout_add(5,self.go_active)
+                                        #self.go_active()
                             if duration_count >= self.active_duration:
                                 audiocorr, audiofreq = self.calculate.get_audio_result()
                                 if audiocorr > 0.0 and audiofreq > 0.0:
@@ -1514,6 +1516,7 @@ class Proximity (threading.Thread):
                                         if not self.Simulate:
                                             timerAct = gobject.timeout_add(5,self.go_context_scan)  #asynchromous call
                                             last_triggered_time = int(time.time())
+                                self.calculate.reset_audio_result()
                         else:
                             duration_count = 0
                     else:

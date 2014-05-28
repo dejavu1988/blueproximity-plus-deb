@@ -58,6 +58,10 @@ class Calculate(threading.Thread):
     def get_audio_result(self):
             return self.audio_result_maxCorr, self.audio_result_diff
 
+    def reset_audio_result(self):
+        self.audio_result_maxCorr = 0.0
+        self.audio_result_diff = 0.0
+
 def dec_enqueue(queue, lock, tag):
     try:
         lock.acquire()

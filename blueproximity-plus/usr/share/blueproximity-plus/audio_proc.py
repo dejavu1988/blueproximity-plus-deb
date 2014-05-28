@@ -88,6 +88,6 @@ def xcorr(sig1, sig2):
 if __name__ == "__main__":
     path0 = '0.wav'
     path1 = '1.wav'
-    maxCorr, freqDist, dist = getXCorrandDistFromWav(path0, path1)
+    maxCorr, dist = getXCorrandDistFromWav(path0, path1)
     print maxCorr, dist
 

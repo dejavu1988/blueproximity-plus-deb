@@ -1427,7 +1427,7 @@ class Proximity (threading.Thread):
     # It checks the rssi value against limits and invokes all commands.
     def run(self):
         duration_count = 0
-        context_timeout = 5
+        context_timeout = 10
         #state = _("gone")
         if state_command(self.uname):
             state = _("gone")
@@ -1474,35 +1474,41 @@ class Proximity (threading.Thread):
                     print 'Dist: ' + str(dist) + " State: " + state + " Simulate: " + str(self.Simulate)
                     if state == _("gone"):  #state: gone
                         ##  modified algo of trigger
-                        if dist >= 2 * self.active_limit:   #inside 2*range of trigger scanning
-                            #print "Inside scan range"
-                            if self.sample.isDecisionOn() and (not self.sample.isExpired()): #result still valid
-                                pass
-                            else:   # decision expired or empty
-                                if int(time.time()) - last_triggered_time > self.trigger_timeout:
-                                    if not self.Simulate:
-                                        timerAct = gobject.timeout_add(5,self.go_context_scan)  #asynchromous call
-                                        last_triggered_time = int(time.time())
+                        #if dist >= 2 * self.active_limit:   #inside 2*range of trigger scanning
+                        #    #print "Inside scan range"
+                        #    if self.sample.isDecisionOn() and (not self.sample.isExpired()): #result still valid
+                        #        pass
+                        #    else:   # decision expired or empty
+                        #        if int(time.time()) - last_triggered_time > self.trigger_timeout:
+                        #            if not self.Simulate:
+                        #                timerAct = gobject.timeout_add(5,self.go_context_scan)  #asynchromous call
+                        #                last_triggered_time = int(time.time())
                         if dist >= self.active_limit:
                             duration_count += 1
                             context_timeout -= 1
                             if context_timeout <= 0:
-                                context_timeout = 5
-                                state = _("active")
-                                duration_count = 0
-                                if not self.Simulate:
-                                    # start the process asynchronously so we are not hanging here...
-                                    timerAct = gobject.timeout_add(5,self.go_active)
-                                    #self.go_active()
+                                context_timeout = 10
+                                #state = _("active")
+                                #duration_count = 0
+                                #if not self.Simulate:
+                                #    # start the process asynchronously so we are not hanging here...
+                                #    timerAct = gobject.timeout_add(5,self.go_active)
+                                #    #self.go_active()
                             if duration_count >= self.active_duration:
-                                if self.sample.isDecisionOn() and (not self.sample.isExpired()):
-                                    if self.sample.decision:
-                                        state = _("active")
-                                        duration_count = 0
-                                        if not self.Simulate:
-                                            # start the process asynchronously so we are not hanging here...
-                                            timerAct = gobject.timeout_add(5,self.go_active)
-                                            #self.go_active()
+                                audiocorr, audiofreq = self.calculate.get_audio_result()
+                                if audiocorr > 0.0 and audiofreq > 0.0:
+                                    print "Audio-MaxCorr: " + str(audiocorr)
+                                    print "Audio-Dist: " + str(audiofreq)
+                                    if audiocorr >= 0.11715:
+                                        if audiofreq <= 1.3683:
+                                    #if self.sample.isDecisionOn() and (not self.sample.isExpired()):
+                                    #    if self.sample.decision:
+                                            state = _("active")
+                                            duration_count = 0
+                                            if not self.Simulate:
+                                                # start the process asynchronously so we are not hanging here...
+                                                timerAct = gobject.timeout_add(5,self.go_active)
+                                                #self.go_active()
                                 else:   # decision expired or empty
                                     if int(time.time()) - last_triggered_time > self.trigger_timeout:
                                         if not self.Simulate:
@@ -1671,7 +1677,7 @@ if __name__=='__main__':
 
     dec_queue = Queue.Queue()
     dec_lock = threading.Lock()
-    calculate = Calculate(log_queue, log_lock, dec_queue, dec_lock, sample)
+    calculate = Calculate(data_dir,log_queue, log_lock, dec_queue, dec_lock, sample)
     calculate.start()
 
     client = Client(data_dir, db, db_queue, db_lock, log_queue, log_lock, uuid, sample, dec_queue, dec_lock)

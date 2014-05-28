@@ -151,7 +151,7 @@ class Client(threading.Thread):
                     self.sample.remote.updateFromWAV(tmpts, dict_msg['val'])
                     print 'Remote Wav ready'
                     if self.sample.getStatus():
-                        dec_enqueue(self.dec_queue, self.dec_lock, 'ready')
+                        dec_enqueue(self.dec_queue, self.dec_lock, dict_msg['ts'])
                     self.channel.queue_purge(queue=self.inqueue)
                     print 'Queues purged.'
             else:

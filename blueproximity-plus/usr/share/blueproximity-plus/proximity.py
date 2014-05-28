@@ -1184,7 +1184,7 @@ class Proximity (threading.Thread):
         self.timeProx = 0
         #Modified init start
         self.delay_start = 5    # delay after binding
-        self.trigger_timeout = 30 # timeout of triggering scanning
+        self.trigger_timeout = 40 # timeout of triggering scanning
         self.last_rssi = 0  # last valid raw rssi value
         self.sus_rssi = 0   # suspecious raw rssi value
         self.buf = []   # buffer of raw RSSIs for filter window
